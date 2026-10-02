@@ -963,6 +963,8 @@
       "<div class='field'><label for='gate'>" + (zh ? "短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
       "<label class='check only' id='title-row'><input id='keep-title' type='checkbox' />" + (zh ? "标题写进被切开的每一块" : "Copy the heading into every piece of that section") + "</label>" +
       "<div class='field'><label for='stem'>" + (zh ? "文件夹名" : "Folder name") + "</label><input id='stem' type='text' value='chunks' autocomplete='off' /></div>" +
+      "<div class='row'><button type='button' class='primary' id='open-preview' disabled>" + (zh ? "预览" : "Preview") + "</button></div>" +
+      "<p class='hint'>" + (zh ? "右边先点中一份。这一颗按钮才展开那一份全文。" : "Pick one file on the right. This button opens that file.") + "</p>" +
       "<p class='hint'><a href='08-manage.html'>" + (zh ? "打开管理向量库" : "Open the vector store") + "</a>" +
       (zh ? "。解压后选中文件夹。一个文件是一行。" : ". After unzipping, choose the folder. One file is one row.") + "</p>" +
       "</section>" +
@@ -1331,6 +1333,7 @@
       document.getElementById("prev-file").disabled = !previewOpen || previewIndex <= 0;
       document.getElementById("next-file").disabled = !previewOpen || !files.length || previewIndex >= files.length - 1;
       document.getElementById("close-preview").disabled = !previewOpen;
+      document.getElementById("open-preview").disabled = !files.length;
       if (!files.length) {
         previewOpen = false;
         summary.textContent = zh ? "还没有切。" : "Nothing cut yet.";
@@ -1343,21 +1346,19 @@
       const longest = files.reduce(function (n, file) { return Math.max(n, file.text.length); }, 0);
       const overlapChars = files.reduce(function (n, file) { return n + file.overlap.length; }, 0);
       summary.innerHTML = "<span class='swatch'></span>" + (zh
-        ? files.length + " 个文件。点「预览」才展开那一份全文。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。"
-        : files.length + " files. Press Preview to open one file. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters.");
+        ? files.length + " 个文件。先点中一份，再点左边的「预览」。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。"
+        : files.length + " files. Pick one, then press Preview on the left. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters.");
       files.forEach(function (file, index) {
         const article = document.createElement("article");
-        const open = previewOpen && index === previewIndex;
-        article.className = open ? "picked" : "";
-        article.innerHTML = "<button type='button' class='preview-one'>" + (open ? (zh ? "收起" : "Hide") : (zh ? "预览" : "Preview")) + "</button>" +
-          "<div><span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
-          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p></div>";
+        article.className = index === previewIndex ? "picked" : "";
+        article.innerHTML = "<span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
+          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p>";
         box.appendChild(article);
       });
       if (!previewOpen) {
         name.textContent = "";
         body.className = "closed";
-        body.textContent = zh ? "全文先藏着。点某一份的「预览」。" : "The full text stays hidden. Press Preview on a file.";
+        body.textContent = zh ? "全文先藏着。点左边的「预览」。" : "The full text stays hidden. Press Preview on the left.";
         return;
       }
       const open = files[previewIndex];
@@ -1556,16 +1557,17 @@
     });
 
     document.getElementById("queue").addEventListener("click", function (event) {
-      const button = event.target.closest("button.preview-one");
-      if (!button || button.parentElement.parentElement.id !== "queue") return;
-      const article = button.parentElement;
+      const article = event.target.closest("article");
+      if (!article || article.parentElement.id !== "queue") return;
       const index = Array.prototype.indexOf.call(article.parentElement.children, article);
       if (index < 0) return;
-      if (previewOpen && previewIndex === index) previewOpen = false;
-      else {
-        previewIndex = index;
-        previewOpen = true;
-      }
+      previewIndex = index;
+      paintFiles(lastSaw);
+    });
+
+    document.getElementById("open-preview").addEventListener("click", function () {
+      if (!files.length) return;
+      previewOpen = true;
       paintFiles(lastSaw);
     });
 
