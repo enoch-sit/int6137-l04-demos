@@ -337,21 +337,37 @@
       "<div class='sentences'>" + t.lines.map(function (line) {
         return "<article><span class='tag'>id · " + line.id + "</span>" + escapeHtml(line.content) + "</article>";
       }).join("") + "</div>" +
+      "<h2>" + (zh ? "点一题，立刻查询" : "Click a question to search") + "</h2>" +
+      "<p class='hint'>" + (zh
+        ? "深色按钮是正在查的那一句。点它会查询。浅绿色只是还没点中。先点写入三句，库里才有行。"
+        : "The dark button is the question being searched. Clicking it runs the query. A light green button is not selected. Write the three sentences first, or the table has no rows.") + "</p>" +
       "<div class='row' id='questions'></div>" +
-      "<div class='row'><button type='button' class='primary' id='store'>" + t.write + "</button><button type='button' id='ask'>" + t.query + "</button></div>" +
+      "<p id='q-now' class='hint'></p>" +
+      "<div class='row'><button type='button' class='primary' id='store'>" + t.write + "</button><button type='button' id='ask'>" + (zh ? "再查一次当前问题" : "Search the current question again") + "</button></div>" +
       "<p id='status'></p>" +
       "<h2>" + t.ranks + "</h2><div id='ranks'></div>" +
       "<h2>" + t.messages + "</h2><pre id='messages'></pre>" +
       "</section>";
 
     const qBox = document.getElementById("questions");
+    function markQuestion() {
+      qBox.querySelectorAll("button").forEach(function (b) {
+        b.classList.toggle("on", b.textContent === question);
+      });
+      document.getElementById("q-now").textContent = (zh ? "当前问题：" : "Current question: ") + question;
+    }
     t.questions.forEach(function (q) {
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = q;
-      b.addEventListener("click", function () { question = q; });
+      b.addEventListener("click", function () {
+        question = q;
+        markQuestion();
+        runQuery();
+      });
       qBox.appendChild(b);
     });
+    markQuestion();
 
     function ready() {
       if (!document.getElementById("apikey").value.trim() || !document.getElementById("supabase-url").value.trim() || !document.getElementById("publishable").value.trim()) {
@@ -412,9 +428,9 @@
       }
     });
 
-    document.getElementById("ask").addEventListener("click", async function () {
+    async function runQuery() {
       if (!ready()) return;
-      setStatus(zh ? "正在把问题变成数字…" : "Turning the question into numbers…", "");
+      setStatus((zh ? "正在查询：" : "Searching: ") + question, "");
       try {
         const vector = (await embed([question]))[0];
         if (vector.length !== 1024) {
@@ -440,7 +456,9 @@
       } catch (err) {
         setStatus(err.message || String(err), "bad");
       }
-    });
+    }
+
+    document.getElementById("ask").addEventListener("click", runQuery);
   }
 
   if (demo === "manage") {

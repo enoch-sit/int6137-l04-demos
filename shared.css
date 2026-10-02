@@ -508,3 +508,9 @@ body[data-demo="split"] #queue button.preview-one { margin-top: 6px; }
 }
 
 #questions button { background: var(--good-bg); color: var(--eucalyptus); }
+
+#questions button.on {
+  background: var(--ink);
+  color: var(--white);
+  outline: 2px solid var(--eucalyptus);
+}
