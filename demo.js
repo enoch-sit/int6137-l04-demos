@@ -456,6 +456,8 @@
       "<div class='field'><label for='supabase-url'>" + t.project + "</label><input id='supabase-url' type='text' placeholder='https://xxxx.supabase.co' autocomplete='off' /></div>" +
       "<div class='field'><label for='publishable'>" + t.publishable + "</label><input id='publishable' type='password' autocomplete='off' /></div>" +
       "<div class='field'><label for='folder'>" + (zh ? "文件夹" : "Folder") + "</label><input id='folder' type='file' webkitdirectory directory multiple /></div>" +
+      "<p class='hint'><a href='../student-db/student-db-" + (zh ? "zh" : "en") + ".zip' download>" + (zh ? "下载练习文件夹" : "Download the practice folder") + "</a>" +
+      (zh ? "。解压后，用上面的按钮选中 student-db-zh。里面有十五个文本，另有一个 PDF 和一个空文件，这一页会跳过。" : ". Unzip it, then choose the folder student-db-en above. It holds fifteen text files, plus one PDF and one empty file, which this page skips.") + "</p>" +
       "<div id='queue' class='chunk-list'></div>" +
       "<div class='row'><button type='button' class='primary' id='write-folder'>" + (zh ? "写入这些文本" : "Write these texts") + "</button></div>" +
       "</section>" +
