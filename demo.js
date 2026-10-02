@@ -1349,9 +1349,9 @@
         const article = document.createElement("article");
         const open = previewOpen && index === previewIndex;
         article.className = open ? "picked" : "";
-        article.innerHTML = "<span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
-          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p>" +
-          "<button type='button' class='preview-one'>" + (open ? (zh ? "收起" : "Hide") : (zh ? "预览" : "Preview")) + "</button>";
+        article.innerHTML = "<button type='button' class='preview-one'>" + (open ? (zh ? "收起" : "Hide") : (zh ? "预览" : "Preview")) + "</button>" +
+          "<div><span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
+          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p></div>";
         box.appendChild(article);
       });
       if (!previewOpen) {

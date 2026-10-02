@@ -471,9 +471,15 @@ body[data-demo="split"] #queue.chunk-list {
   overflow: auto;
 }
 
-body[data-demo="split"] #queue article { cursor: default; }
+body[data-demo="split"] #queue article {
+  cursor: default;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: start;
+}
 
-body[data-demo="split"] #queue button.preview-one { margin-top: 6px; }
+body[data-demo="split"] #queue button.preview-one { margin-top: 0; }
 
 #preview-body {
   white-space: pre-wrap;
