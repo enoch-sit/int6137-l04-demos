@@ -458,6 +458,7 @@
       "<div class='field'><label for='folder'>" + (zh ? "文件夹" : "Folder") + "</label><input id='folder' type='file' webkitdirectory directory multiple /></div>" +
       "<p class='hint'><a href='../student-db/student-db-" + (zh ? "zh" : "en") + ".zip' download>" + (zh ? "下载练习文件夹" : "Download the practice folder") + "</a>" +
       (zh ? "。解压后，用上面的按钮选中 student-db-zh。里面有十五个文本，另有一个 PDF 和一个空文件，这一页会跳过。" : ". Unzip it, then choose the folder student-db-en above. It holds fifteen text files, plus one PDF and one empty file, which this page skips.") + "</p>" +
+      "<p class='hint'><a href='09-split.html'>" + (zh ? "字数、重叠、符号和其他切法在这一页。" : "Chunk size, overlap, symbols, and the other cuts are on this page.") + "</a></p>" +
       "<div id='queue' class='chunk-list'></div>" +
       "<div class='row'><button type='button' class='primary' id='write-folder'>" + (zh ? "写入这些文本" : "Write these texts") + "</button></div>" +
       "</section>" +
@@ -898,6 +899,621 @@
 
     paintQueue();
     paintRows();
+  }
+
+  if (demo === "split") {
+    const sampleText = zh
+      ? "# 年假\n\n教职员请于出发前十个工作日在门户提交年假申请。申请须写明出发日和返回日。部门主管在三个工作日内批复。未批复前不得离岗。\n\n批假之后，职员须在系统里填写实际出发日期。返回后五个工作日内补交行程。逾期未补的，年假天数按未休处理。\n\n# 过敏\n\n教职员如对花生过敏，须在入职表上登记。食堂不提供花生酱。自带食物请标明成分。\n\n医务室备有抗组胺药。严重反应先拨校内急救，再通知部门。\n\n# 广告\n\n暑假旅游，立即预订。此段不是规章，用来对照检索。\n\n# 校园交通\n\n校巴于上课日七时从地铁站开出，每二十分钟一班，末班二十一时。周末首班九时，末班十八时。校巴不载大型行李。雨天仍按时刻表行驶。\n\n# 图书馆\n\n图书馆开放时间为八时至二十二时。考试周延长到二十三时。借书上限十册，期限十四日。逾期每天每册一元。丢失按原价两倍赔偿。\n\n# 打印\n\n每名学生每学期有一百页免费打印。超出部分每页两角。彩色打印不在免费额度内。卡纸请到服务台处理，不要自行拆机。\n\n# 诊所\n\n校诊所工作日九时至十七时。急症请到附近医院。就诊须带学生证。\n\n# 宿舍\n\n门禁二十三时。访客须在前台登记，最迟二十二时离开。宿舍不可以使用电热炉。\n\n# 考试\n\n考试周禁止在课室饮食。迟到三十分钟不得入场。手机放在指定袋内。\n\n# 无线网络\n\n校园网账号是学生编号。密码每九十天更换。访客网每天申请一次，当日有效。"
+      : "# Leave\n\nApply ten working days before you travel. Write the departure date and the return date. A head of department replies within three working days. Do not leave before that reply.\n\nAfter approval, enter the real departure date. File the trip within five working days of your return.\n\n# Allergy\n\nStaff who are allergic to peanuts register it on the joining form. The canteen does not serve peanut butter. Label food you bring in.\n\n# Advert\n\nSummer trip, book now. This line is not a rule. It is here so a search can miss it.\n\n# Shuttle\n\nOn class days the shuttle leaves the metro at 07:00, every twenty minutes, last bus 21:00. Weekends start at 09:00 and end at 18:00. Large luggage stays off the bus.\n\n# Library\n\nThe library is open from 08:00 to 22:00. Exam weeks close at 23:00. The loan limit is ten books for fourteen days.\n\n# Printer\n\nEach student has one hundred free pages a term. Extra pages cost twenty cents. Colour printing is not included.\n\n# Clinic\n\nThe campus clinic is open on weekdays from 09:00 to 17:00. Bring a student card.\n\n# Dorm\n\nThe gate closes at 23:00. Visitors sign in and leave by 22:00. Hot plates are not allowed.\n\n# Exam\n\nNo food in the exam room. Arrival after thirty minutes means you cannot sit the paper. Phones go in the marked bag.\n\n# Wifi\n\nThe campus account is the student number. The password changes every ninety days. Guest wifi lasts one day.";
+
+    const qaText = zh
+      ? "问：怎么请假？\n答：教职员请于出发前十个工作日在门户提交年假申请。未批复前不得离岗。\n\n问：我对什么过敏？\n答：花生过敏须在入职表上登记。食堂不提供花生酱。\n\n问：校巴末班是几点？\n答：上课日末班二十一时。周末末班十八时。\n\n问：暑假去哪？\n答：暑假旅游，立即预订。此段不是规章。"
+      : "Q: How do I apply for leave?\nA: Apply ten working days before you travel. Do not leave before the reply.\n\nQ: What am I allergic to?\nA: Register a peanut allergy on the joining form. The canteen does not serve peanut butter.\n\nQ: When is the last shuttle?\nA: On class days the last bus is 21:00. On weekends it is 18:00.\n\nQ: Where is the summer trip?\nA: Summer trip, book now. This line is not a rule.";
+
+    const methodList = zh
+      ? [["whole", "整篇"], ["hard", "硬切"], ["size", "按字数"], ["symbol", "按符号"], ["sentence", "按句子"], ["paragraph", "按空行"], ["heading", "按标题"], ["recursive", "递归"], ["qa", "问答对"], ["window", "句子窗口"]]
+      : [["whole", "Whole"], ["hard", "Hard cut"], ["size", "By length"], ["symbol", "By symbol"], ["sentence", "Sentences"], ["paragraph", "Blank lines"], ["heading", "Headings"], ["recursive", "Recursive"], ["qa", "Q&A"], ["window", "Window"]];
+    const overlapList = zh
+      ? [["none", "不重叠"], ["sentence", "上一句"], ["chars", "固定字数"], ["ratio", "百分比"]]
+      : [["none", "None"], ["sentence", "Last sentence"], ["chars", "Characters"], ["ratio", "Percent"]];
+    const symbolPresets = zh
+      ? [["。", "。"], ["！", "！"], ["？", "？"], ["，", "，"], ["空行", "\\n\\n"], ["换行", "\\n"]]
+      : [[". ", ". "], ["! ", "! "], ["? ", "? "], [", ", ", "], ["Blank line", "\\n\\n"], ["Newline", "\\n"]];
+
+    app.innerHTML =
+      "<p id='status'></p>" +
+      "<div class='columns'>" +
+      "<section class='panel'>" +
+      "<h2>" + (zh ? "原文" : "Source") + "</h2>" +
+      "<div class='field'><label for='src'>" + (zh ? "文本文件" : "Text file") + "</label><input id='src' type='file' accept='.txt,.md,.markdown,text/plain' /></div>" +
+      "<div class='field'><label for='body'>" + (zh ? "或粘贴全文" : "Or paste the whole text") + "</label><textarea id='body' class='tall'></textarea></div>" +
+      "<div class='row'><button type='button' id='sample'>" + (zh ? "填入课文" : "Fill the handbook") + "</button><button type='button' id='sample-qa'>" + (zh ? "填入问答" : "Fill questions") + "</button></div>" +
+      "<h2>" + (zh ? "怎么切" : "How to cut") + "</h2>" +
+      "<div class='row methods' id='methods'>" + methodList.map(function (item) {
+        return "<button type='button' data-mode='" + item[0] + "'>" + item[1] + "</button>";
+      }).join("") + "</div>" +
+      "<p id='why' class='hint'></p>" +
+      "<div class='field only' id='size-row'><label for='max'>" + (zh ? "一块最多多少字" : "Most characters in one chunk") + "</label><input id='max' type='number' min='8' value='80' /></div>" +
+      "<div class='field only' id='overlap-row'><label>" + (zh ? "重叠" : "Overlap") + "</label><div class='row methods' id='overlap-kinds'>" + overlapList.map(function (item) {
+        return "<button type='button' data-overlap='" + item[0] + "'>" + item[1] + "</button>";
+      }).join("") + "</div></div>" +
+      "<div class='field only' id='amount-row'><label for='amount'>" + (zh ? "重叠多少字" : "Overlap characters") + "</label><input id='amount' type='number' min='1' value='20' /></div>" +
+      "<div class='field only' id='symbol-row'><label for='symbol'>" + (zh ? "遇到这个符号就切。换行用下面的按钮。" : "Cut at this symbol. Newlines are the buttons below.") + "</label><input id='symbol' type='text' value='" + (zh ? "。" : ". ") + "' autocomplete='off' /><div class='row methods' id='symbol-presets'>" + symbolPresets.map(function (item) {
+        return "<button type='button' data-symbol='" + escapeHtml(item[1]) + "'>" + escapeHtml(item[0]) + "</button>";
+      }).join("") + "</div></div>" +
+      "<div class='field only' id='window-row'><label for='window-n'>" + (zh ? "每块几句" : "Sentences in one chunk") + "</label><input id='window-n' type='number' min='1' max='8' value='2' /></div>" +
+      "<div class='field'><label for='gate'>" + (zh ? "短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
+      "<label class='check only' id='title-row'><input id='keep-title' type='checkbox' />" + (zh ? "标题写进被切开的每一块" : "Copy the heading into every piece of that section") + "</label>" +
+      "<div class='field'><label for='stem'>" + (zh ? "文件夹名" : "Folder name") + "</label><input id='stem' type='text' value='chunks' autocomplete='off' /></div>" +
+      "<div class='row'><button type='button' class='primary' id='download' disabled>" + (zh ? "下载 zip" : "Download zip") + "</button></div>" +
+      "<p class='hint'><a href='08-manage.html'>" + (zh ? "打开管理向量库" : "Open the vector store") + "</a>" +
+      (zh ? "。解压后选中文件夹。一个文件是一行。" : ". After unzipping, choose the folder. One file is one row.") + "</p>" +
+      "</section>" +
+      "<section class='panel'>" +
+      "<h2>" + (zh ? "切出来的块" : "Chunks") + "</h2>" +
+      "<p id='summary' class='hint'></p>" +
+      "<div id='queue' class='chunk-list full'></div>" +
+      "</section>" +
+      "</div>";
+
+    let files = [];
+    let currentMode = "size";
+    let overlapKind = "sentence";
+
+    function maxChars() {
+      const n = Number(document.getElementById("max").value);
+      if (!Number.isFinite(n) || n < 8) return 80;
+      return Math.floor(n);
+    }
+
+    function amount() {
+      const n = Number(document.getElementById("amount").value);
+      if (!Number.isFinite(n) || n < 1) return 20;
+      if (overlapKind === "ratio") return Math.min(90, Math.floor(n));
+      return Math.floor(n);
+    }
+
+    function windowN() {
+      const n = Number(document.getElementById("window-n").value);
+      if (!Number.isFinite(n) || n < 1) return 2;
+      return Math.min(8, Math.floor(n));
+    }
+
+    function gateN() {
+      const n = Number(document.getElementById("gate").value);
+      if (!Number.isFinite(n) || n < 1) return 0;
+      return Math.floor(n);
+    }
+
+    function readSymbol() {
+      return document.getElementById("symbol").value.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+    }
+
+    function safeStem(raw) {
+      const s = String(raw || "chunks").trim().toLowerCase().replace(/\s+/g, "-").replace(/[\\/:*?"<>|]/g, "").replace(/^\.+/, "").slice(0, 40);
+      return s || "chunks";
+    }
+
+    function normalize(text) {
+      return String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+    }
+
+    function isHeading(line) {
+      const t = line.trim();
+      if (!t || t.length > 80) return false;
+      if (/^#{1,6}\s+\S/.test(t)) return true;
+      if (/^第[0-9一二三四五六七八九十百千]+[章节篇部]/.test(t)) return true;
+      if (/^[一二三四五六七八九十]+、\S/.test(t)) return true;
+      if (/^(chapter|section)\s+\d+/i.test(t)) return true;
+      if (/^\d{1,2}[.)]\s+\S/.test(t) && t.length <= 40 && !/[。.!？?]$/.test(t)) return true;
+      return false;
+    }
+
+    function splitOnSymbol(text, symbol) {
+      if (!symbol) return [text];
+      const parts = [];
+      let start = 0;
+      let at = text.indexOf(symbol, start);
+      if (at === -1) {
+        const only = text.trim();
+        return only ? [only] : [];
+      }
+      while (at !== -1) {
+        const end = at + symbol.length;
+        const piece = text.slice(start, end).replace(/^[ \t]+/, "").replace(/[ \t]+$/, "");
+        if (piece.trim()) parts.push(piece);
+        start = end;
+        at = text.indexOf(symbol, start);
+      }
+      const tail = text.slice(start).replace(/^[ \t]+/, "").replace(/\s+$/, "");
+      if (tail.trim()) parts.push(tail);
+      return parts.length ? parts : [text.trim()];
+    }
+
+    function lastBreak(window) {
+      const marks = ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "，", ", "];
+      let best = -1;
+      marks.forEach(function (mark) {
+        const at = window.lastIndexOf(mark);
+        if (at > best) best = at + mark.length;
+      });
+      return best;
+    }
+
+    function hardCut(text, max) {
+      const out = [];
+      const n = Math.max(8, max);
+      for (let i = 0; i < text.length; i += n) out.push(text.slice(i, i + n));
+      return out.length ? out : [text];
+    }
+
+    function splitBySize(text, max) {
+      const clean = text.trim();
+      if (!clean) return [];
+      if (clean.length <= max) return [clean];
+      const out = [];
+      let i = 0;
+      while (i < clean.length) {
+        let end = Math.min(clean.length, i + max);
+        if (end < clean.length) {
+          const breakAt = lastBreak(clean.slice(i, end));
+          if (breakAt > Math.floor(max * 0.4)) end = i + breakAt;
+        }
+        const slice = clean.slice(i, end).trim();
+        if (slice) out.push(slice);
+        if (end >= clean.length) break;
+        let next = end;
+        while (next < clean.length && /\s/.test(clean.charAt(next))) next += 1;
+        if (next <= i) next = Math.min(clean.length, i + Math.max(1, max));
+        if (next <= i) break;
+        i = next;
+      }
+      return out.length ? out : [clean];
+    }
+
+    function sentencesOf(text) {
+      const parts = text.split(/(?<=[。！？!?])\s*|(?<=\.)\s+/).map(function (part) { return part.trim(); }).filter(Boolean);
+      return parts.length ? parts : [text];
+    }
+
+    function joinSents(list) {
+      return list.reduce(function (acc, part) {
+        if (!acc) return part;
+        if (/[。！？!?]$/.test(acc) && /^[A-Za-z]/.test(part)) return acc + " " + part;
+        if (/[。！？!?]$/.test(acc)) return acc + part;
+        return acc + " " + part;
+      }, "");
+    }
+
+    function packPieces(pieces, max, sep) {
+      const out = [];
+      let buf = "";
+      pieces.forEach(function (piece) {
+        if (!piece) return;
+        if (piece.length > max) {
+          if (buf) { out.push(buf); buf = ""; }
+          splitBySize(piece, max).forEach(function (part) { out.push(part); });
+          return;
+        }
+        const next = !buf ? piece : (sep != null ? buf + sep + piece : joinSents([buf, piece]));
+        if (!buf || next.length <= max) buf = next;
+        else { out.push(buf); buf = piece; }
+      });
+      if (buf) out.push(buf);
+      return out.length ? out : pieces;
+    }
+
+    function headingPieces(text, max, keepTitle) {
+      const lines = text.split("\n");
+      const blocks = [];
+      let cur = [];
+      lines.forEach(function (line) {
+        if (isHeading(line) && cur.some(function (row) { return row.trim(); })) {
+          const joined = cur.join("\n").trim();
+          if (joined) blocks.push(joined);
+          cur = [line];
+        } else cur.push(line);
+      });
+      const tail = cur.join("\n").trim();
+      if (tail) blocks.push(tail);
+      const out = [];
+      (blocks.length ? blocks : [text]).forEach(function (block) {
+        if (block.length <= max) { out.push(block); return; }
+        const head = block.split("\n")[0];
+        const titled = keepTitle && isHeading(head);
+        splitBySize(block, max).forEach(function (part, index) {
+          if (titled && index > 0 && part.indexOf(head) !== 0) out.push(head + "\n" + part);
+          else out.push(part);
+        });
+      });
+      return out;
+    }
+
+    function recursiveSplit(text, max) {
+      const seps = ["\n\n", "\n", "。", "！", "？", ". ", "! ", "? ", "，", ", ", " "];
+      function walk(value, level) {
+        const clean = value.trim();
+        if (!clean) return [];
+        if (clean.length <= max || level >= seps.length) {
+          if (clean.length <= max) return [clean];
+          return hardCut(clean, max);
+        }
+        const sep = seps[level];
+        if (clean.indexOf(sep) === -1) return walk(clean, level + 1);
+        const bits = splitOnSymbol(clean, sep);
+        if (bits.length <= 1) return walk(clean, level + 1);
+        const packed = [];
+        let buf = "";
+        bits.forEach(function (bit) {
+          if (bit.length > max) {
+            if (buf) { packed.push(buf.trim()); buf = ""; }
+            walk(bit, level + 1).forEach(function (part) { packed.push(part); });
+            return;
+          }
+          if (!buf) { buf = bit; return; }
+          if ((buf + bit).length <= max) buf += bit;
+          else { packed.push(buf.trim()); buf = bit; }
+        });
+        if (buf.trim()) packed.push(buf.trim());
+        return packed;
+      }
+      const out = walk(text, 0);
+      return out.length ? out : [text];
+    }
+
+    function qaPieces(text) {
+      const lines = text.split("\n");
+      const blocks = [];
+      let cur = [];
+      let saw = false;
+      lines.forEach(function (line) {
+        if (/^(?:问|問|q)\s*[:：]/i.test(line.trim())) {
+          saw = true;
+          const joined = cur.join("\n").trim();
+          if (joined) blocks.push(joined);
+          cur = [line];
+        } else cur.push(line);
+      });
+      const tail = cur.join("\n").trim();
+      if (tail) blocks.push(tail);
+      return { pieces: blocks.filter(Boolean), saw: saw };
+    }
+
+    function windowChunks(text, k) {
+      const sents = sentencesOf(text);
+      const out = [];
+      for (let i = 0; i < sents.length; i += 1) {
+        const slice = sents.slice(i, i + k);
+        if (!slice.length) break;
+        const shared = i > 0 ? joinSents(sents.slice(i, Math.min(sents.length, i + k - 1))) : "";
+        out.push({ text: joinSents(slice), overlap: shared && joinSents(slice).indexOf(shared) === 0 ? shared : "" });
+        if (i + k >= sents.length) break;
+      }
+      return out.length ? out : [{ text: text, overlap: "" }];
+    }
+
+    function sentenceTail(prev) {
+      const parts = prev.split(/(?<=[。！？!?])\s*|(?<=\.)\s+/).map(function (part) { return part.trim(); }).filter(Boolean);
+      if (!parts.length) return "";
+      const last = parts[parts.length - 1];
+      if (last.length > 180) return last.slice(-180);
+      return last;
+    }
+
+    function applyOverlap(pieces, kind, n) {
+      return pieces.map(function (piece, index) {
+        if (index === 0 || kind === "none") return { text: piece, overlap: "" };
+        const prev = pieces[index - 1];
+        let extra = "";
+        if (kind === "sentence") extra = sentenceTail(prev);
+        else if (kind === "chars") extra = prev.slice(Math.max(0, prev.length - Math.min(n, Math.max(1, prev.length - 1))));
+        else if (kind === "ratio") {
+          const count = Math.min(prev.length - 1, Math.max(1, Math.round(prev.length * n / 100)));
+          extra = prev.slice(prev.length - count);
+        }
+        if (!extra) return { text: piece, overlap: "" };
+        if (piece.indexOf(extra) === 0) return { text: piece, overlap: extra };
+        const glued = extra + "\n" + piece;
+        return { text: glued, overlap: extra + "\n" };
+      });
+    }
+
+    function shownSymbol(symbol) {
+      if (!symbol) return zh ? "（空）" : "(empty)";
+      return symbol.replace(/\n/g, "\\n");
+    }
+
+    function explain(sawQa) {
+      const n = maxChars();
+      let line = "";
+      if (zh) {
+        if (currentMode === "whole") line = "整篇一块。字数再长也只有一个向量。";
+        else if (currentMode === "hard") line = "每 " + n + " 个字切一刀，不管句号。一句话会被从中间切开。";
+        else if (currentMode === "size") line = "一块最多 " + n + " 个字，尽量在句号或换行处收刀。";
+        else if (currentMode === "symbol") line = "一遇到「" + shownSymbol(readSymbol()) + "」就切开。符号留在上一块末尾。";
+        else if (currentMode === "sentence") line = "先按句号切开，再把几句合成一块，直到写满 " + n + " 个字。";
+        else if (currentMode === "paragraph") line = "空行是边界。短段合成一块，直到写满 " + n + " 个字。";
+        else if (currentMode === "heading") line = "一个标题一块。超过 " + n + " 个字才再切。" + (document.getElementById("keep-title").checked ? " 切开之后，标题会再写进每一块。" : "");
+        else if (currentMode === "recursive") line = "先试空行。还长过 " + n + " 个字，就改试换行，再试句号，最后才按字硬切。";
+        else if (currentMode === "qa") line = sawQa ? "「问：」或「Q:」开头的是新的一块，回答跟在这个问题后面。这一刀不抄重叠。" : "这篇里没有「问：」或「Q:」。点填入问答。";
+        else if (currentMode === "window") line = "每块 " + windowN() + " 句。下一块丢掉最旧的一句、补上新的一句，相邻两块因此重叠。";
+        if (currentMode !== "whole" && currentMode !== "window" && currentMode !== "qa") {
+          if (overlapKind === "none") line += " 没有重叠。";
+          else if (overlapKind === "sentence") line += " 琥珀色是从上一块抄来的最后一句。";
+          else if (overlapKind === "chars") line += " 琥珀色是上一块末尾的 " + amount() + " 个字。";
+          else if (overlapKind === "ratio") line += " 琥珀色是上一块末尾的 " + amount() + "%。";
+        }
+        if (gateN() > 0) line += " 全文不超过 " + gateN() + " 个字时，保持整篇。";
+      } else {
+        if (currentMode === "whole") line = "The whole text is one chunk, and one vector.";
+        else if (currentMode === "hard") line = "Cut every " + n + " characters, even in the middle of a sentence.";
+        else if (currentMode === "size") line = "One chunk holds at most " + n + " characters, and prefers to stop at a sentence or a line.";
+        else if (currentMode === "symbol") line = "Cut at “" + shownSymbol(readSymbol()) + "”. The symbol stays on the previous chunk.";
+        else if (currentMode === "sentence") line = "Split on sentence marks, then pack sentences until " + n + " characters.";
+        else if (currentMode === "paragraph") line = "A blank line is a boundary. Short paragraphs pack until " + n + " characters.";
+        else if (currentMode === "heading") line = "One heading is one chunk, until it passes " + n + " characters." + (document.getElementById("keep-title").checked ? " The heading is copied onto every piece." : "");
+        else if (currentMode === "recursive") line = "Try a blank line. If a piece is still over " + n + " characters, try a newline, then a sentence mark, then a hard cut.";
+        else if (currentMode === "qa") line = sawQa ? "A line starting with Q: starts a chunk. The answer stays with that question. This cut does not copy overlap." : "This text has no Q: line. Fill the questions.";
+        else if (currentMode === "window") line = "Each chunk holds " + windowN() + " sentences. The next chunk drops the oldest sentence and adds one, so neighbours overlap.";
+        if (currentMode !== "whole" && currentMode !== "window" && currentMode !== "qa") {
+          if (overlapKind === "none") line += " No overlap.";
+          else if (overlapKind === "sentence") line += " Amber is the previous chunk’s last sentence, copied forward.";
+          else if (overlapKind === "chars") line += " Amber is the last " + amount() + " characters of the previous chunk.";
+          else if (overlapKind === "ratio") line += " Amber is the last " + amount() + "% of the previous chunk.";
+        }
+        if (gateN() > 0) line += " A text of at most " + gateN() + " characters stays one chunk.";
+      }
+      return line;
+    }
+
+    function fileSlug(text, n, overlap) {
+      let body = text;
+      if (overlap && text.indexOf(overlap) === 0) body = text.slice(overlap.length).trim();
+      const first = (body.split("\n").find(function (line) { return line.trim(); }) || "").trim().replace(/^#{1,6}\s*/, "");
+      let slug = first.toLowerCase().replace(/\s+/g, "-").replace(/[^\w\u3400-\u9fff-]+/g, "");
+      slug = slug.replace(/^-+|-+$/g, "").slice(0, 20);
+      const num = String(n).padStart(3, "0");
+      return (slug ? num + "-" + slug : num) + ".txt";
+    }
+
+    function paintBody(text, overlap) {
+      if (overlap && text.indexOf(overlap) === 0) {
+        return "<mark class='overlap'>" + escapeHtml(overlap) + "</mark>" + escapeHtml(text.slice(overlap.length));
+      }
+      return escapeHtml(text);
+    }
+
+    function paintFiles(sawQa) {
+      const box = document.getElementById("queue");
+      const summary = document.getElementById("summary");
+      const button = document.getElementById("download");
+      box.innerHTML = "";
+      button.disabled = !files.length;
+      document.getElementById("why").textContent = explain(sawQa);
+      if (!files.length) {
+        summary.textContent = zh ? "还没有切。" : "Nothing cut yet.";
+        return;
+      }
+      const longest = files.reduce(function (n, file) { return Math.max(n, file.text.length); }, 0);
+      const overlapChars = files.reduce(function (n, file) { return n + file.overlap.length; }, 0);
+      const scale = Math.max(maxChars(), longest, 1);
+      const shown = files.slice(0, 80);
+      summary.innerHTML = "<span class='swatch'></span>" + (zh
+        ? files.length + " 块。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。琥珀色是抄进下一块的字。"
+        : files.length + " chunks. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters. Amber is the copied text.") +
+        (files.length > shown.length ? (zh ? " 页面只列出前 80 块。" : " The page lists the first 80.") : "");
+      shown.forEach(function (file) {
+        const article = document.createElement("article");
+        article.className = "static";
+        const width = Math.max(4, Math.min(100, Math.round(file.text.length / scale * 100)));
+        article.innerHTML = "<span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
+          file.text.length + (zh ? " 字" : " chars") + "</span>" +
+          (file.overlap ? "<span class='tag'>" + (zh ? "重叠 " : "overlap ") + file.overlap.trim().length + "</span>" : "") +
+          "<pre>" + paintBody(file.text, file.overlap) + "</pre>" +
+          "<div class='meter" + (file.text.length > maxChars() ? " over" : "") + "'><span style='width:" + width + "%'></span></div>";
+        box.appendChild(article);
+      });
+    }
+
+    function produce(text) {
+      const gate = gateN();
+      if (gate > 0 && text.length <= gate) return { pieces: [{ text: text, overlap: "" }], saw: true };
+      if (currentMode === "window") return { pieces: windowChunks(text, windowN()), saw: true };
+      let pieces = [text];
+      let saw = true;
+      if (currentMode === "hard") pieces = hardCut(text, maxChars());
+      else if (currentMode === "size") pieces = splitBySize(text, maxChars());
+      else if (currentMode === "symbol") pieces = splitOnSymbol(text, readSymbol());
+      else if (currentMode === "sentence") pieces = packPieces(sentencesOf(text), maxChars());
+      else if (currentMode === "paragraph") pieces = packPieces(text.split(/\n\s*\n+/).map(function (part) { return part.trim(); }).filter(Boolean), maxChars(), "\n\n");
+      else if (currentMode === "heading") pieces = headingPieces(text, maxChars(), document.getElementById("keep-title").checked);
+      else if (currentMode === "recursive") pieces = recursiveSplit(text, maxChars());
+      else if (currentMode === "qa") {
+        const found = qaPieces(text);
+        pieces = found.pieces.length ? found.pieces : [text];
+        saw = found.saw;
+      }
+      const kind = currentMode === "whole" || currentMode === "qa" ? "none" : overlapKind;
+      return { pieces: applyOverlap(pieces, kind, amount()), saw: saw };
+    }
+
+    function cutNow() {
+      const text = normalize(document.getElementById("body").value);
+      if (!text) {
+        files = [];
+        paintFiles(false);
+        setStatus(zh ? "先粘贴或选择一篇 txt。" : "Paste a txt, or choose a file.", "bad");
+        return;
+      }
+      const made = produce(text);
+      files = made.pieces.map(function (piece, index) {
+        return {
+          name: fileSlug(piece.text, index + 1, piece.overlap),
+          text: piece.text,
+          overlap: piece.overlap || ""
+        };
+      });
+      paintFiles(made.saw);
+      setStatus(zh ? "切成 " + files.length + " 块。" : "Cut into " + files.length + " chunks.", "ok");
+    }
+
+    function showMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll("#methods button").forEach(function (button) {
+        button.classList.toggle("on", button.dataset.mode === mode);
+      });
+      document.getElementById("size-row").classList.toggle("show", mode !== "whole" && mode !== "window");
+      document.getElementById("overlap-row").classList.toggle("show", mode !== "whole" && mode !== "window" && mode !== "qa");
+      document.getElementById("symbol-row").classList.toggle("show", mode === "symbol");
+      document.getElementById("window-row").classList.toggle("show", mode === "window");
+      document.getElementById("title-row").classList.toggle("show", mode === "heading");
+      document.getElementById("amount-row").classList.toggle("show", mode !== "whole" && mode !== "window" && mode !== "qa" && (overlapKind === "chars" || overlapKind === "ratio"));
+      cutNow();
+    }
+
+    function showOverlap(kind) {
+      overlapKind = kind;
+      document.querySelectorAll("#overlap-kinds button").forEach(function (button) {
+        button.classList.toggle("on", button.dataset.overlap === kind);
+      });
+      const label = document.querySelector("label[for='amount']");
+      if (label) label.textContent = kind === "ratio" ? (zh ? "重叠百分之几" : "Overlap percent") : (zh ? "重叠多少字" : "Overlap characters");
+      document.getElementById("amount-row").classList.toggle("show", currentMode !== "whole" && currentMode !== "window" && currentMode !== "qa" && (kind === "chars" || kind === "ratio"));
+      cutNow();
+    }
+
+    function crc32(bytes) {
+      if (!crc32.table) {
+        const table = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+          let c = n;
+          for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+          table[n] = c >>> 0;
+        }
+        crc32.table = table;
+      }
+      let crc = 0xffffffff;
+      for (let i = 0; i < bytes.length; i++) crc = crc32.table[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+      return (crc ^ 0xffffffff) >>> 0;
+    }
+
+    function zipStored(entries) {
+      const enc = new TextEncoder();
+      const parts = [];
+      const central = [];
+      let offset = 0;
+      entries.forEach(function (entry) {
+        const nameBytes = enc.encode(entry.name);
+        const data = enc.encode(entry.text);
+        const crc = crc32(data);
+        const local = new Uint8Array(30 + nameBytes.length);
+        const view = new DataView(local.buffer);
+        view.setUint32(0, 0x04034b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 0x0800, true);
+        view.setUint16(8, 0, true);
+        view.setUint32(14, crc, true);
+        view.setUint32(18, data.length, true);
+        view.setUint32(22, data.length, true);
+        view.setUint16(26, nameBytes.length, true);
+        local.set(nameBytes, 30);
+        parts.push(local, data);
+        const cen = new Uint8Array(46 + nameBytes.length);
+        const cv = new DataView(cen.buffer);
+        cv.setUint32(0, 0x02014b50, true);
+        cv.setUint16(4, 20, true);
+        cv.setUint16(6, 20, true);
+        cv.setUint16(8, 0x0800, true);
+        cv.setUint32(16, crc, true);
+        cv.setUint32(20, data.length, true);
+        cv.setUint32(24, data.length, true);
+        cv.setUint16(28, nameBytes.length, true);
+        cv.setUint32(42, offset, true);
+        cen.set(nameBytes, 46);
+        central.push(cen);
+        offset += local.length + data.length;
+      });
+      let centralSize = 0;
+      central.forEach(function (part) { centralSize += part.length; });
+      const end = new Uint8Array(22);
+      const ev = new DataView(end.buffer);
+      ev.setUint32(0, 0x06054b50, true);
+      ev.setUint16(8, entries.length, true);
+      ev.setUint16(10, entries.length, true);
+      ev.setUint32(12, centralSize, true);
+      ev.setUint32(16, offset, true);
+      return new Blob(parts.concat(central, [end]), { type: "application/zip" });
+    }
+
+    document.getElementById("methods").addEventListener("click", function (event) {
+      const button = event.target.closest("button");
+      if (!button || !button.dataset.mode) return;
+      showMode(button.dataset.mode);
+    });
+
+    document.getElementById("overlap-kinds").addEventListener("click", function (event) {
+      const button = event.target.closest("button");
+      if (!button || !button.dataset.overlap) return;
+      showOverlap(button.dataset.overlap);
+    });
+
+    document.getElementById("symbol-presets").addEventListener("click", function (event) {
+      const button = event.target.closest("button");
+      if (!button || button.dataset.symbol == null) return;
+      document.getElementById("symbol").value = button.dataset.symbol;
+      cutNow();
+    });
+
+    ["max", "amount", "gate", "window-n", "symbol"].forEach(function (id) {
+      document.getElementById(id).addEventListener("input", cutNow);
+    });
+
+    document.getElementById("keep-title").addEventListener("change", cutNow);
+
+    let typing = 0;
+    document.getElementById("body").addEventListener("input", function () {
+      clearTimeout(typing);
+      typing = setTimeout(cutNow, 200);
+    });
+
+    document.getElementById("sample").addEventListener("click", function () {
+      document.getElementById("body").value = sampleText;
+      document.getElementById("stem").value = "handbook";
+      cutNow();
+    });
+
+    document.getElementById("sample-qa").addEventListener("click", function () {
+      document.getElementById("body").value = qaText;
+      document.getElementById("stem").value = "questions";
+      showMode("qa");
+    });
+
+    document.getElementById("src").addEventListener("change", async function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      document.getElementById("body").value = await file.text();
+      const stem = file.name.replace(/\.[^.]+$/, "");
+      if (stem) document.getElementById("stem").value = stem;
+      cutNow();
+    });
+
+    document.getElementById("download").addEventListener("click", function () {
+      if (!files.length) return;
+      const stem = safeStem(document.getElementById("stem").value);
+      const blob = zipStored(files);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = stem + ".zip";
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus(zh ? "已下载 " + stem + ".zip。解压后到管理页选中 " + stem + "。" : "Downloaded " + stem + ".zip. Unzip it, then choose " + stem + " on the manage page.", "ok");
+    });
+
+    document.getElementById("body").value = sampleText;
+    document.getElementById("stem").value = "handbook";
+    showOverlap("sentence");
+    showMode("size");
   }
 
   function pdfText(buffer) {

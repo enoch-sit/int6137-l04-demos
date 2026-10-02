@@ -141,7 +141,7 @@ label {
   margin-bottom: 4px;
 }
 
-input[type="text"], input[type="password"], textarea {
+input[type="text"], input[type="password"], input[type="number"], textarea, select {
   width: 100%;
   font: 12px/1.4 ui-monospace, Consolas, monospace;
   padding: 7px 8px;
@@ -152,8 +152,20 @@ input[type="text"], input[type="password"], textarea {
 }
 
 textarea { min-height: 88px; resize: vertical; }
+textarea.tall { min-height: 220px; }
 
-input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.check input { margin-top: 3px; }
+
+input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
   outline: 2px solid var(--eucalyptus);
   border-color: var(--eucalyptus);
 }
@@ -399,6 +411,53 @@ main > .hint {
   overflow: hidden;
   font-size: 12px;
 }
+
+.chunk-list.full pre { max-height: none; }
+
+.chunk-list article.static { cursor: default; }
+
+.methods button.on,
+#overlap-kinds button.on {
+  background: var(--ink);
+  color: var(--white);
+}
+
+mark.overlap {
+  background: rgba(232, 168, 56, 0.55);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 4px;
+  background: rgba(232, 168, 56, 0.55);
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.meter {
+  height: 6px;
+  margin-top: 6px;
+  background: var(--mist);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--eucalyptus);
+}
+
+.meter.over > span { background: var(--coral); }
+
+.only { display: none; }
+.field.only.show { display: block; }
+.row.only.show, .check.only.show { display: flex; }
 
 #ranks { display: grid; gap: 8px; }
 
