@@ -512,3 +512,31 @@ body[data-demo="split"] #queue article { cursor: pointer; }
   color: var(--white);
   outline: 2px solid var(--eucalyptus);
 }
+
+body[data-demo="methods"] .reads {
+  font-weight: 650;
+  margin: 0 0 8px;
+}
+
+body[data-demo="methods"] ol.steps {
+  margin: 0 0 10px;
+  padding-left: 1.25em;
+}
+
+body[data-demo="methods"] ol.steps li { margin: 0 0 6px; }
+
+body[data-demo="methods"] .guide-pieces { display: grid; gap: 8px; }
+
+body[data-demo="methods"] .guide-pieces article {
+  border: 1px solid var(--mist);
+  border-radius: 10px;
+  padding: 8px;
+  background: var(--cream);
+}
+
+body[data-demo="methods"] .guide-pieces pre {
+  max-height: none;
+  margin: 6px 0 0;
+}
+
+body[data-demo="methods"] #names { white-space: pre-wrap; }
