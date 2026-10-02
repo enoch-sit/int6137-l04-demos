@@ -450,8 +450,8 @@
       "<section class='panel'>" +
       "<h2>" + (zh ? "文件夹" : "Folder") + "</h2>" +
       "<p class='hint'>" + (zh
-        ? "选一个文件夹。一个文本文件是 lesson_chunks 里的一行，整篇不切块。文件名写在 source。这一阶段只收 .txt、.md 和 .markdown。全班共用这一张表，删除会删掉那一行。"
-        : "Choose a folder. One text file is one row in lesson_chunks, kept whole. The file name is stored in source. This stage keeps .txt, .md, and .markdown. The class shares this table, so delete removes that row.") + "</p>" +
+        ? "选一个文件夹。一个文本文件是 lesson_chunks 里的一行，整篇不切块。文件名写在 source。覆盖正文时，这一行的 1024 个数一并覆盖。这一阶段只收 .txt、.md 和 .markdown。全班共用这一张表，删除会删掉那一行。"
+        : "Choose a folder. One text file is one row in lesson_chunks, kept whole. The file name is stored in source. Overwriting the text also overwrites that row's 1024 numbers. This stage keeps .txt, .md, and .markdown. The class shares this table, so delete removes that row.") + "</p>" +
       "<div class='field'><label for='apikey'>" + t.key + "</label><input id='apikey' type='password' autocomplete='off' /></div>" +
       "<div class='field'><label for='supabase-url'>" + t.project + "</label><input id='supabase-url' type='text' placeholder='https://xxxx.supabase.co' autocomplete='off' /></div>" +
       "<div class='field'><label for='publishable'>" + t.publishable + "</label><input id='publishable' type='password' autocomplete='off' /></div>" +
@@ -464,6 +464,7 @@
       "<div class='field'><label for='filter'>" + (zh ? "按 id 或文件名筛选" : "Filter by id or file name") + "</label><input id='filter' type='text' autocomplete='off' /></div>" +
       "<div class='row'><button type='button' id='load'>" + (zh ? "读取" : "Load") + "</button></div>" +
       "<p id='count' class='hint'></p>" +
+      "<div class='row pager' id='pager'></div>" +
       "<div id='rows' class='chunk-list'></div>" +
       "<h2>" + (zh ? "选中的一行" : "Selected row") + "</h2>" +
       "<div class='field'><label for='row-id'>id</label><input id='row-id' type='text' autocomplete='off' /></div>" +
@@ -484,9 +485,19 @@
     let loadedContent = "";
     let queue = [];
     let allRows = [];
+    let page = 0;
+    let total = 0;
+    let totalExact = false;
+    let loadedOnce = false;
+    let lastContentRange = "";
+    const pageSize = 10;
+
+    function keysReady() {
+      return document.getElementById("apikey").value.trim() && document.getElementById("supabase-url").value.trim() && document.getElementById("publishable").value.trim();
+    }
 
     function ready() {
-      if (!document.getElementById("apikey").value.trim() || !document.getElementById("supabase-url").value.trim() || !document.getElementById("publishable").value.trim()) {
+      if (!keysReady()) {
         setStatus(t.needKey, "bad");
         return false;
       }
@@ -537,7 +548,56 @@
       let data = null;
       if (text) { try { data = JSON.parse(text); } catch (e) { data = text; } }
       if (!res.ok) throw new Error("HTTP " + res.status + " " + String(data && data.message ? data.message : text).slice(0, 180));
+      lastContentRange = res.headers.get("content-range") || "";
       return data;
+    }
+
+    function filterTerm() {
+      return document.getElementById("filter").value.trim().replace(/[^\w\u0080-\uFFFF./-]+/g, "");
+    }
+
+    function listPath() {
+      let path = "/rest/v1/lesson_chunks?select=id,content,source&order=id.asc&limit=" + pageSize + "&offset=" + (page * pageSize);
+      const term = filterTerm();
+      if (term) path += "&or=(id.ilike.*" + encodeURIComponent(term) + "*,source.ilike.*" + encodeURIComponent(term) + "*)";
+      return path;
+    }
+
+    function pageCount() {
+      if (!totalExact) return allRows.length < pageSize ? page + 1 : page + 2;
+      return Math.max(1, Math.ceil(total / pageSize));
+    }
+
+    function pageStatus() {
+      const pages = pageCount();
+      if (zh) {
+        if (totalExact) return "表里 " + total + " 行。第 " + (page + 1) + " / " + pages + " 页，每页 " + pageSize + " 行。";
+        return "第 " + (page + 1) + " 页，这一页 " + allRows.length + " 行。";
+      }
+      if (totalExact) return total + " rows. Page " + (page + 1) + " of " + pages + ", " + pageSize + " rows on a page.";
+      return "Page " + (page + 1) + ", " + allRows.length + " rows on this page.";
+    }
+
+    function pageWindow() {
+      const pages = totalExact ? pageCount() : 0;
+      if (!pages) return [page + 1];
+      if (pages <= 7) {
+        const all = [];
+        for (let i = 1; i <= pages; i++) all.push(i);
+        return all;
+      }
+      const cur = page + 1;
+      const set = [1];
+      for (let i = cur - 1; i <= cur + 1; i++) {
+        if (i > 1 && i < pages) set.push(i);
+      }
+      set.push(pages);
+      const out = [];
+      set.forEach(function (n, i) {
+        if (i && n - set[i - 1] > 1) out.push("…");
+        out.push(n);
+      });
+      return out;
     }
 
     function fillForm(row) {
@@ -549,37 +609,79 @@
       paintRows();
     }
 
-    function visibleRows() {
-      const q = document.getElementById("filter").value.trim().toLowerCase();
-      if (!q) return allRows;
-      return allRows.filter(function (row) {
-        return String(row.id || "").toLowerCase().indexOf(q) !== -1 || String(row.source || "").toLowerCase().indexOf(q) !== -1;
+    function paintPager() {
+      const box = document.getElementById("pager");
+      box.innerHTML = "";
+      if (!loadedOnce || !total) return;
+      const prev = document.createElement("button");
+      prev.type = "button";
+      prev.textContent = zh ? "上一页" : "Previous";
+      prev.disabled = page === 0;
+      prev.addEventListener("click", function () { goPage(page - 1); });
+      box.appendChild(prev);
+      pageWindow().forEach(function (n) {
+        if (n === "…") {
+          const gap = document.createElement("span");
+          gap.className = "pager-gap";
+          gap.textContent = "…";
+          box.appendChild(gap);
+          return;
+        }
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = String(n);
+        if (n === page + 1) button.className = "on";
+        button.addEventListener("click", function () { goPage(n - 1); });
+        box.appendChild(button);
       });
+      const next = document.createElement("button");
+      next.type = "button";
+      next.textContent = zh ? "下一页" : "Next";
+      const last = totalExact ? pageCount() - 1 : (allRows.length < pageSize ? page : page + 1);
+      next.disabled = page >= last;
+      next.addEventListener("click", function () { goPage(page + 1); });
+      box.appendChild(next);
     }
 
     function paintRows() {
       const box = document.getElementById("rows");
-      const list = visibleRows();
       const count = document.getElementById("count");
-      count.textContent = zh
-        ? "表里 " + allRows.length + " 行。这里显示 " + list.length + " 行。"
-        : allRows.length + " rows in the table. Showing " + list.length + ".";
       box.innerHTML = "";
+      if (!loadedOnce) {
+        count.textContent = "";
+        box.innerHTML = "<p class='hint'>" + (zh ? "点读取。行多的时候，一页十行。" : "Click Load. A long table shows ten rows on a page.") + "</p>";
+        paintPager();
+        return;
+      }
+      count.textContent = pageStatus();
       if (!allRows.length) {
-        box.innerHTML = "<p class='hint'>" + (zh ? "表是空的。" : "The table is empty.") + "</p>";
+        box.innerHTML = "<p class='hint'>" + (filterTerm()
+          ? (zh ? "没有对上的行。" : "No rows match.")
+          : (zh ? "表是空的。" : "The table is empty.")) + "</p>";
+        paintPager();
         return;
       }
-      if (!list.length) {
-        box.innerHTML = "<p class='hint'>" + (zh ? "没有对上的行。" : "No rows match.") + "</p>";
-        return;
-      }
-      list.forEach(function (row) {
+      allRows.forEach(function (row) {
         const article = document.createElement("article");
         if (row.id === loadedId) article.className = "picked";
         article.innerHTML = "<span class='tag'>id · " + escapeHtml(row.id) + "</span><span class='tag'>" + escapeHtml(row.source || "") + "</span><pre>" + escapeHtml(row.content || "") + "</pre>";
         article.addEventListener("click", function () { fillForm(row); });
         box.appendChild(article);
       });
+      paintPager();
+    }
+
+    async function goPage(nextPage) {
+      if (nextPage < 0 || nextPage === page) return;
+      if (!ready()) return;
+      page = nextPage;
+      setStatus(zh ? "正在读取…" : "Loading…", "");
+      try {
+        await loadRows();
+        setStatus(pageStatus(), "ok");
+      } catch (err) {
+        setStatus(err.message || String(err), "bad");
+      }
     }
 
     function paintQueue() {
@@ -630,29 +732,36 @@
     }
 
     async function loadRows() {
-      const rows = await rest("GET", "/rest/v1/lesson_chunks?select=id,content,source&order=id.asc");
+      const rows = await rest("GET", listPath(), null, "count=exact");
       allRows = Array.isArray(rows) ? rows : [];
+      const match = /\/(\d+)\s*$/.exec(lastContentRange);
+      if (match) {
+        totalExact = true;
+        total = Number(match[1]);
+        const pages = Math.max(1, Math.ceil(total / pageSize));
+        if (page > pages - 1) {
+          page = pages - 1;
+          if (total > 0) return loadRows();
+        }
+      } else {
+        totalExact = false;
+        total = allRows.length ? page * pageSize + allRows.length + (allRows.length < pageSize ? 0 : 1) : 0;
+      }
+      loadedOnce = true;
       paintRows();
       return allRows;
     }
 
     async function writeOne(id, source, content) {
-      const same = id === loadedId && content === loadedContent;
-      if (same) {
-        await rest("PATCH", "/rest/v1/lesson_chunks?id=eq." + encodeURIComponent(id), { source: source }, "return=minimal");
-        return "source";
-      }
       const vector = (await embed([content]))[0];
       if (!vector || vector.length !== 1024) throw new Error(zh ? "返回的长度不是 1024" : "The vector length is not 1024");
-      await rest("POST", "/rest/v1/lesson_chunks?on_conflict=id", {
-        id: id,
-        content: content,
-        source: source,
-        embedding: vector
-      }, "resolution=merge-duplicates,return=minimal");
+      const row = { content: content, source: source, embedding: vector };
+      const updated = await rest("PATCH", "/rest/v1/lesson_chunks?id=eq." + encodeURIComponent(id), row, "return=representation");
+      if (!Array.isArray(updated) || !updated.length) {
+        await rest("POST", "/rest/v1/lesson_chunks", Object.assign({ id: id }, row), "return=minimal");
+      }
       loadedId = id;
       loadedContent = content;
-      return "embed";
     }
 
     document.getElementById("folder").addEventListener("change", async function (event) {
@@ -669,7 +778,18 @@
         : ready.length + " text files can be written." + (skipped ? " Skipped " + skipped + "." : ""), "");
     });
 
-    document.getElementById("filter").addEventListener("input", paintRows);
+    document.getElementById("filter").addEventListener("input", function () {
+      page = 0;
+      clearTimeout(document.getElementById("filter")._timer);
+      document.getElementById("filter")._timer = setTimeout(async function () {
+        if (!keysReady()) return;
+        try {
+          await loadRows();
+        } catch (err) {
+          setStatus(err.message || String(err), "bad");
+        }
+      }, 300);
+    });
 
     document.getElementById("write-folder").addEventListener("click", async function () {
       if (!ready()) return;
@@ -681,13 +801,12 @@
       try {
         for (let i = 0; i < readyItems.length; i++) {
           const item = readyItems[i];
-          setStatus((zh ? "正在写入 " : "Writing ") + (i + 1) + "/" + readyItems.length + " · " + item.name, "");
-          loadedId = "";
-          loadedContent = "";
+          setStatus((zh ? "正在覆盖正文和 1024 个数 " : "Overwriting text and 1024 numbers ") + (i + 1) + "/" + readyItems.length + " · " + item.name, "");
           await writeOne(item.id, item.source, item.text);
         }
+        page = 0;
         await loadRows();
-        setStatus(zh ? "已写入 " + readyItems.length + " 行。长度 1024。" : "Wrote " + readyItems.length + " rows. Length 1024.", "ok");
+        setStatus(zh ? "已覆盖 " + readyItems.length + " 行的正文和 1024 个数。" : "Overwrote the text and the 1024 numbers for " + readyItems.length + " rows.", "ok");
       } catch (err) {
         setStatus(err.message || String(err), "bad");
       }
@@ -697,8 +816,8 @@
       if (!ready()) return;
       setStatus(zh ? "正在读取…" : "Loading…", "");
       try {
-        const list = await loadRows();
-        setStatus(zh ? "读到 " + list.length + " 行。" : "Loaded " + list.length + " rows.", "ok");
+        await loadRows();
+        setStatus(pageStatus(), "ok");
       } catch (err) {
         setStatus(err.message || String(err), "bad");
       }
@@ -718,12 +837,10 @@
           setStatus(zh ? "先填文件名。" : "Enter the file name.", "bad");
           return;
         }
-        setStatus(zh ? "正在写入…" : "Writing…", "");
-        const kind = await writeOne(id, source, content);
+        setStatus(zh ? "正在覆盖正文和 1024 个数…" : "Overwriting the text and the 1024 numbers…", "");
+        await writeOne(id, source, content);
         await loadRows();
-        setStatus(kind === "source"
-          ? (zh ? "只更新了来源。没有重新算数字。" : "Updated source only. The numbers were not recomputed.")
-          : (zh ? "已写入。长度 1024。" : "Stored. Length 1024."), "ok");
+        setStatus(zh ? "已覆盖正文和 1024 个数。" : "Overwrote the text and the 1024 numbers.", "ok");
       } catch (err) {
         setStatus(err.message || String(err), "bad");
       }

@@ -186,6 +186,25 @@ button.primary {
 
 button.primary:hover { background: var(--eucalyptus); filter: none; }
 
+button:disabled,
+button:disabled:hover {
+  opacity: 0.4;
+  cursor: default;
+  filter: none;
+}
+
+.pager { align-items: center; }
+
+.pager button.on {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.pager-gap {
+  color: var(--muted);
+  padding: 0 2px;
+}
+
 button[data-sel="article.policy"] {
   background: var(--good-bg);
   color: var(--eucalyptus);
