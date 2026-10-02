@@ -471,6 +471,10 @@ body[data-demo="split"] #queue.chunk-list {
   overflow: auto;
 }
 
+body[data-demo="split"] #queue article { cursor: default; }
+
+body[data-demo="split"] #queue button.preview-one { margin-top: 6px; }
+
 #preview-body {
   white-space: pre-wrap;
   word-break: break-word;
@@ -478,6 +482,11 @@ body[data-demo="split"] #queue.chunk-list {
   max-height: 70vh;
   overflow: auto;
   margin: 0 0 12px;
+}
+
+#preview-body.closed {
+  min-height: 0;
+  color: var(--muted);
 }
 
 .only { display: none; }

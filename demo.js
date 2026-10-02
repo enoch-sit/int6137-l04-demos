@@ -955,8 +955,8 @@
       "<div id='queue' class='chunk-list'></div>" +
       "<div id='preview'>" +
       "<p id='preview-name' class='hint'></p>" +
-      "<div class='row'><button type='button' id='prev-file'>" + (zh ? "上一份" : "Previous") + "</button><button type='button' id='next-file'>" + (zh ? "下一份" : "Next") + "</button></div>" +
-      "<pre id='preview-body'></pre>" +
+      "<div class='row'><button type='button' id='prev-file'>" + (zh ? "上一份" : "Previous") + "</button><button type='button' id='next-file'>" + (zh ? "下一份" : "Next") + "</button><button type='button' id='close-preview'>" + (zh ? "收起" : "Hide") + "</button></div>" +
+      "<pre id='preview-body' class='closed'></pre>" +
       "<div class='row'><button type='button' class='primary' id='download' disabled>" + (zh ? "下载 zip" : "Download zip") + "</button></div>" +
       "</div>" +
       "</div>" +
@@ -965,6 +965,7 @@
 
     let files = [];
     let previewIndex = 0;
+    let previewOpen = false;
     let lastSaw = true;
     let currentMode = "size";
     let overlapKind = "sentence";
@@ -1309,11 +1310,14 @@
       box.innerHTML = "";
       button.disabled = !files.length;
       document.getElementById("why").textContent = explain(sawQa);
-      document.getElementById("prev-file").disabled = previewIndex <= 0;
-      document.getElementById("next-file").disabled = !files.length || previewIndex >= files.length - 1;
+      document.getElementById("prev-file").disabled = !previewOpen || previewIndex <= 0;
+      document.getElementById("next-file").disabled = !previewOpen || !files.length || previewIndex >= files.length - 1;
+      document.getElementById("close-preview").disabled = !previewOpen;
       if (!files.length) {
+        previewOpen = false;
         summary.textContent = zh ? "还没有切。" : "Nothing cut yet.";
         name.textContent = "";
+        body.className = "closed";
         body.textContent = zh ? "还没有可以预览的文件。" : "Nothing to preview yet.";
         return;
       }
@@ -1321,17 +1325,26 @@
       const longest = files.reduce(function (n, file) { return Math.max(n, file.text.length); }, 0);
       const overlapChars = files.reduce(function (n, file) { return n + file.overlap.length; }, 0);
       summary.innerHTML = "<span class='swatch'></span>" + (zh
-        ? files.length + " 个文件。先看右边这一份，再下载 zip。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。"
-        : files.length + " files. Read the open file, then download the zip. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters.");
+        ? files.length + " 个文件。点「预览」才展开那一份全文。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。"
+        : files.length + " files. Press Preview to open one file. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters.");
       files.forEach(function (file, index) {
         const article = document.createElement("article");
-        article.className = index === previewIndex ? "picked" : "";
+        const open = previewOpen && index === previewIndex;
+        article.className = open ? "picked" : "";
         article.innerHTML = "<span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
-          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p>";
+          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p>" +
+          "<button type='button' class='preview-one'>" + (open ? (zh ? "收起" : "Hide") : (zh ? "预览" : "Preview")) + "</button>";
         box.appendChild(article);
       });
+      if (!previewOpen) {
+        name.textContent = "";
+        body.className = "closed";
+        body.textContent = zh ? "全文先藏着。点某一份的「预览」。" : "The full text stays hidden. Press Preview on a file.";
+        return;
+      }
       const open = files[previewIndex];
       name.textContent = open.name + " · " + open.text.length + (zh ? " 字" : " chars");
+      body.className = "";
       body.innerHTML = paintBody(open.text, open.overlap);
       const picked = box.children[previewIndex];
       if (picked && picked.scrollIntoView) picked.scrollIntoView({ block: "nearest" });
@@ -1364,11 +1377,13 @@
       if (!text) {
         files = [];
         previewIndex = 0;
+        previewOpen = false;
         paintFiles(false);
         setStatus(zh ? "先粘贴或选择一篇 txt。" : "Paste a txt, or choose a file.", "bad");
         return;
       }
       const made = produce(text);
+      previewOpen = false;
       previewIndex = files.length ? Math.min(previewIndex, made.pieces.length - 1) : 0;
       if (previewIndex < 0) previewIndex = 0;
       files = made.pieces.map(function (piece, index) {
@@ -1523,23 +1538,33 @@
     });
 
     document.getElementById("queue").addEventListener("click", function (event) {
-      const article = event.target.closest("article");
-      if (!article || article.parentElement.id !== "queue") return;
+      const button = event.target.closest("button.preview-one");
+      if (!button || button.parentElement.parentElement.id !== "queue") return;
+      const article = button.parentElement;
       const index = Array.prototype.indexOf.call(article.parentElement.children, article);
       if (index < 0) return;
-      previewIndex = index;
+      if (previewOpen && previewIndex === index) previewOpen = false;
+      else {
+        previewIndex = index;
+        previewOpen = true;
+      }
       paintFiles(lastSaw);
     });
 
     document.getElementById("prev-file").addEventListener("click", function () {
-      if (previewIndex <= 0) return;
+      if (!previewOpen || previewIndex <= 0) return;
       previewIndex -= 1;
       paintFiles(lastSaw);
     });
 
     document.getElementById("next-file").addEventListener("click", function () {
-      if (previewIndex >= files.length - 1) return;
+      if (!previewOpen || previewIndex >= files.length - 1) return;
       previewIndex += 1;
+      paintFiles(lastSaw);
+    });
+
+    document.getElementById("close-preview").addEventListener("click", function () {
+      previewOpen = false;
       paintFiles(lastSaw);
     });
 
