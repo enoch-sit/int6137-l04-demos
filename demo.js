@@ -945,18 +945,27 @@
       "<div class='field'><label for='gate'>" + (zh ? "短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
       "<label class='check only' id='title-row'><input id='keep-title' type='checkbox' />" + (zh ? "标题写进被切开的每一块" : "Copy the heading into every piece of that section") + "</label>" +
       "<div class='field'><label for='stem'>" + (zh ? "文件夹名" : "Folder name") + "</label><input id='stem' type='text' value='chunks' autocomplete='off' /></div>" +
-      "<div class='row'><button type='button' class='primary' id='download' disabled>" + (zh ? "下载 zip" : "Download zip") + "</button></div>" +
       "<p class='hint'><a href='08-manage.html'>" + (zh ? "打开管理向量库" : "Open the vector store") + "</a>" +
       (zh ? "。解压后选中文件夹。一个文件是一行。" : ". After unzipping, choose the folder. One file is one row.") + "</p>" +
       "</section>" +
       "<section class='panel'>" +
-      "<h2>" + (zh ? "切出来的块" : "Chunks") + "</h2>" +
+      "<h2>" + (zh ? "预览" : "Preview") + "</h2>" +
       "<p id='summary' class='hint'></p>" +
-      "<div id='queue' class='chunk-list full'></div>" +
+      "<div class='preview-split'>" +
+      "<div id='queue' class='chunk-list'></div>" +
+      "<div id='preview'>" +
+      "<p id='preview-name' class='hint'></p>" +
+      "<div class='row'><button type='button' id='prev-file'>" + (zh ? "上一份" : "Previous") + "</button><button type='button' id='next-file'>" + (zh ? "下一份" : "Next") + "</button></div>" +
+      "<pre id='preview-body'></pre>" +
+      "<div class='row'><button type='button' class='primary' id='download' disabled>" + (zh ? "下载 zip" : "Download zip") + "</button></div>" +
+      "</div>" +
+      "</div>" +
       "</section>" +
       "</div>";
 
     let files = [];
+    let previewIndex = 0;
+    let lastSaw = true;
     let currentMode = "size";
     let overlapKind = "sentence";
 
@@ -1283,36 +1292,49 @@
       return escapeHtml(text);
     }
 
+    function rowLine(file) {
+      let body = file.text;
+      if (file.overlap && body.indexOf(file.overlap) === 0) body = body.slice(file.overlap.length);
+      const line = (body.split("\n").find(function (row) { return row.trim(); }) || "").trim();
+      return line.length > 42 ? line.slice(0, 42) + "…" : line;
+    }
+
     function paintFiles(sawQa) {
+      lastSaw = sawQa;
       const box = document.getElementById("queue");
       const summary = document.getElementById("summary");
       const button = document.getElementById("download");
+      const name = document.getElementById("preview-name");
+      const body = document.getElementById("preview-body");
       box.innerHTML = "";
       button.disabled = !files.length;
       document.getElementById("why").textContent = explain(sawQa);
+      document.getElementById("prev-file").disabled = previewIndex <= 0;
+      document.getElementById("next-file").disabled = !files.length || previewIndex >= files.length - 1;
       if (!files.length) {
         summary.textContent = zh ? "还没有切。" : "Nothing cut yet.";
+        name.textContent = "";
+        body.textContent = zh ? "还没有可以预览的文件。" : "Nothing to preview yet.";
         return;
       }
+      if (previewIndex < 0 || previewIndex >= files.length) previewIndex = 0;
       const longest = files.reduce(function (n, file) { return Math.max(n, file.text.length); }, 0);
       const overlapChars = files.reduce(function (n, file) { return n + file.overlap.length; }, 0);
-      const scale = Math.max(maxChars(), longest, 1);
-      const shown = files.slice(0, 80);
       summary.innerHTML = "<span class='swatch'></span>" + (zh
-        ? files.length + " 块。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。琥珀色是抄进下一块的字。"
-        : files.length + " chunks. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters. Amber is the copied text.") +
-        (files.length > shown.length ? (zh ? " 页面只列出前 80 块。" : " The page lists the first 80.") : "");
-      shown.forEach(function (file) {
+        ? files.length + " 个文件。先看右边这一份，再下载 zip。最长 " + longest + " 字。重叠一共 " + overlapChars + " 字。"
+        : files.length + " files. Read the open file, then download the zip. Longest is " + longest + " characters. Overlap copies " + overlapChars + " characters.");
+      files.forEach(function (file, index) {
         const article = document.createElement("article");
-        article.className = "static";
-        const width = Math.max(4, Math.min(100, Math.round(file.text.length / scale * 100)));
+        article.className = index === previewIndex ? "picked" : "";
         article.innerHTML = "<span class='tag'>" + escapeHtml(file.name) + "</span><span class='tag'>" +
-          file.text.length + (zh ? " 字" : " chars") + "</span>" +
-          (file.overlap ? "<span class='tag'>" + (zh ? "重叠 " : "overlap ") + file.overlap.trim().length + "</span>" : "") +
-          "<pre>" + paintBody(file.text, file.overlap) + "</pre>" +
-          "<div class='meter" + (file.text.length > maxChars() ? " over" : "") + "'><span style='width:" + width + "%'></span></div>";
+          file.text.length + (zh ? " 字" : " chars") + "</span><p class='hint'>" + escapeHtml(rowLine(file)) + "</p>";
         box.appendChild(article);
       });
+      const open = files[previewIndex];
+      name.textContent = open.name + " · " + open.text.length + (zh ? " 字" : " chars");
+      body.innerHTML = paintBody(open.text, open.overlap);
+      const picked = box.children[previewIndex];
+      if (picked && picked.scrollIntoView) picked.scrollIntoView({ block: "nearest" });
     }
 
     function produce(text) {
@@ -1341,11 +1363,14 @@
       const text = normalize(document.getElementById("body").value);
       if (!text) {
         files = [];
+        previewIndex = 0;
         paintFiles(false);
         setStatus(zh ? "先粘贴或选择一篇 txt。" : "Paste a txt, or choose a file.", "bad");
         return;
       }
       const made = produce(text);
+      previewIndex = files.length ? Math.min(previewIndex, made.pieces.length - 1) : 0;
+      if (previewIndex < 0) previewIndex = 0;
       files = made.pieces.map(function (piece, index) {
         return {
           name: fileSlug(piece.text, index + 1, piece.overlap),
@@ -1495,6 +1520,27 @@
       const stem = file.name.replace(/\.[^.]+$/, "");
       if (stem) document.getElementById("stem").value = stem;
       cutNow();
+    });
+
+    document.getElementById("queue").addEventListener("click", function (event) {
+      const article = event.target.closest("article");
+      if (!article || article.parentElement.id !== "queue") return;
+      const index = Array.prototype.indexOf.call(article.parentElement.children, article);
+      if (index < 0) return;
+      previewIndex = index;
+      paintFiles(lastSaw);
+    });
+
+    document.getElementById("prev-file").addEventListener("click", function () {
+      if (previewIndex <= 0) return;
+      previewIndex -= 1;
+      paintFiles(lastSaw);
+    });
+
+    document.getElementById("next-file").addEventListener("click", function () {
+      if (previewIndex >= files.length - 1) return;
+      previewIndex += 1;
+      paintFiles(lastSaw);
     });
 
     document.getElementById("download").addEventListener("click", function () {

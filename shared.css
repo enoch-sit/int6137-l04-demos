@@ -455,6 +455,31 @@ mark.overlap {
 
 .meter.over > span { background: var(--coral); }
 
+body[data-demo="split"] .preview-split {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1.2fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  body[data-demo="split"] .preview-split { grid-template-columns: 1fr; }
+}
+
+body[data-demo="split"] #queue.chunk-list {
+  max-height: 70vh;
+  overflow: auto;
+}
+
+#preview-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 12em;
+  max-height: 70vh;
+  overflow: auto;
+  margin: 0 0 12px;
+}
+
 .only { display: none; }
 .field.only.show { display: block; }
 .row.only.show, .check.only.show { display: flex; }
