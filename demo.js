@@ -445,29 +445,45 @@
 
   if (demo === "manage") {
     app.innerHTML =
+      "<p id='status'></p>" +
+      "<div class='columns'>" +
       "<section class='panel'>" +
+      "<h2>" + (zh ? "文件夹" : "Folder") + "</h2>" +
       "<p class='hint'>" + (zh
-        ? "这一页主要收 Markdown 文件。一个 .md 是一行。全班共用这一张表，删除会删掉那一行。"
-        : "This page mainly takes Markdown files. One .md is one row. The class shares this table, so delete removes that row.") + "</p>" +
+        ? "选一个文件夹。一个文本文件是 lesson_chunks 里的一行，整篇不切块。文件名写在 source。这一阶段只收 .txt、.md 和 .markdown。全班共用这一张表，删除会删掉那一行。"
+        : "Choose a folder. One text file is one row in lesson_chunks, kept whole. The file name is stored in source. This stage keeps .txt, .md, and .markdown. The class shares this table, so delete removes that row.") + "</p>" +
       "<div class='field'><label for='apikey'>" + t.key + "</label><input id='apikey' type='password' autocomplete='off' /></div>" +
       "<div class='field'><label for='supabase-url'>" + t.project + "</label><input id='supabase-url' type='text' placeholder='https://xxxx.supabase.co' autocomplete='off' /></div>" +
       "<div class='field'><label for='publishable'>" + t.publishable + "</label><input id='publishable' type='password' autocomplete='off' /></div>" +
+      "<div class='field'><label for='folder'>" + (zh ? "文件夹" : "Folder") + "</label><input id='folder' type='file' webkitdirectory directory multiple /></div>" +
+      "<div id='queue' class='chunk-list'></div>" +
+      "<div class='row'><button type='button' class='primary' id='write-folder'>" + (zh ? "写入这些文本" : "Write these texts") + "</button></div>" +
+      "</section>" +
+      "<section class='panel'>" +
+      "<h2>" + (zh ? "表里的行" : "Rows in the table") + "</h2>" +
+      "<div class='field'><label for='filter'>" + (zh ? "按 id 或文件名筛选" : "Filter by id or file name") + "</label><input id='filter' type='text' autocomplete='off' /></div>" +
+      "<div class='row'><button type='button' id='load'>" + (zh ? "读取" : "Load") + "</button></div>" +
+      "<p id='count' class='hint'></p>" +
+      "<div id='rows' class='chunk-list'></div>" +
+      "<h2>" + (zh ? "选中的一行" : "Selected row") + "</h2>" +
       "<div class='field'><label for='row-id'>id</label><input id='row-id' type='text' autocomplete='off' /></div>" +
-      "<div class='field'><label for='row-source'>" + (zh ? "来源" : "source") + "</label><input id='row-source' type='text' autocomplete='off' /></div>" +
-      "<div class='field'><label for='md-file'>" + (zh ? "Markdown 文件" : "Markdown file") + "</label><input id='md-file' type='file' accept='.md,.markdown,text/markdown' multiple /></div>" +
-      "<div class='field'><label for='md-body'>" + (zh ? "Markdown 正文" : "Markdown text") + "</label><textarea id='md-body'></textarea></div>" +
+      "<div class='field'><label for='row-source'>" + (zh ? "文件名（source）" : "File name (source)") + "</label><input id='row-source' type='text' autocomplete='off' /></div>" +
+      "<div class='field'><label for='md-body'>" + (zh ? "正文" : "Text") + "</label><textarea id='md-body'></textarea></div>" +
       "<div class='row'>" +
-      "<button type='button' id='load'>" + (zh ? "读取" : "Load") + "</button>" +
-      "<button type='button' class='primary' id='save'>" + (zh ? "写入" : "Write") + "</button>" +
+      "<button type='button' class='primary' id='save'>" + (zh ? "写入这一行" : "Write this row") + "</button>" +
       "<button type='button' id='remove'>" + (zh ? "删除" : "Remove") + "</button>" +
       "</div>" +
-      "<p id='status'></p>" +
-      "<h2>" + (zh ? "表里的行" : "Rows") + "</h2><div id='rows' class='chunk-list'></div>" +
-      "</section>";
+      "<h2>" + (zh ? "用一句话看远近" : "Check distance with one sentence") + "</h2>" +
+      "<div class='field'><label for='probe'>" + (zh ? "一句话" : "One sentence") + "</label><input id='probe' type='text' autocomplete='off' /></div>" +
+      "<div class='row'><button type='button' id='ask'>" + (zh ? "找最近的行" : "Find nearest rows") + "</button></div>" +
+      "<div id='ranks'></div>" +
+      "</section>" +
+      "</div>";
 
     let loadedId = "";
     let loadedContent = "";
-    const pending = [];
+    let queue = [];
+    let allRows = [];
 
     function ready() {
       if (!document.getElementById("apikey").value.trim() || !document.getElementById("supabase-url").value.trim() || !document.getElementById("publishable").value.trim()) {
@@ -481,12 +497,13 @@
       return document.getElementById("supabase-url").value.trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
     }
 
-    function isMarkdown(name) {
-      return /\.(md|markdown)$/i.test(name);
+    function isTextName(name) {
+      return /\.(txt|md|markdown)$/i.test(name);
     }
 
-    function idFromName(name) {
-      return name.replace(/\.[^.]+$/, "").trim().toLowerCase().replace(/\s+/g, "-");
+    function idFromPath(file) {
+      const rel = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
+      return rel.replace(/\.[^./]+$/, "").trim().toLowerCase().replace(/\s+/g, "-");
     }
 
     async function embed(input) {
@@ -529,29 +546,94 @@
       document.getElementById("md-body").value = row.content || "";
       loadedId = row.id;
       loadedContent = row.content || "";
-      pending.length = 0;
+      paintRows();
     }
 
-    function paint(list) {
+    function visibleRows() {
+      const q = document.getElementById("filter").value.trim().toLowerCase();
+      if (!q) return allRows;
+      return allRows.filter(function (row) {
+        return String(row.id || "").toLowerCase().indexOf(q) !== -1 || String(row.source || "").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function paintRows() {
       const box = document.getElementById("rows");
+      const list = visibleRows();
+      const count = document.getElementById("count");
+      count.textContent = zh
+        ? "表里 " + allRows.length + " 行。这里显示 " + list.length + " 行。"
+        : allRows.length + " rows in the table. Showing " + list.length + ".";
       box.innerHTML = "";
-      if (!list.length) {
+      if (!allRows.length) {
         box.innerHTML = "<p class='hint'>" + (zh ? "表是空的。" : "The table is empty.") + "</p>";
+        return;
+      }
+      if (!list.length) {
+        box.innerHTML = "<p class='hint'>" + (zh ? "没有对上的行。" : "No rows match.") + "</p>";
         return;
       }
       list.forEach(function (row) {
         const article = document.createElement("article");
+        if (row.id === loadedId) article.className = "picked";
         article.innerHTML = "<span class='tag'>id · " + escapeHtml(row.id) + "</span><span class='tag'>" + escapeHtml(row.source || "") + "</span><pre>" + escapeHtml(row.content || "") + "</pre>";
         article.addEventListener("click", function () { fillForm(row); });
         box.appendChild(article);
       });
     }
 
+    function paintQueue() {
+      const box = document.getElementById("queue");
+      box.innerHTML = "";
+      if (!queue.length) {
+        box.innerHTML = "<p class='hint'>" + (zh ? "还没有文件夹。" : "No folder yet.") + "</p>";
+        return;
+      }
+      queue.forEach(function (item) {
+        const article = document.createElement("article");
+        if (item.skip) article.className = "skip";
+        article.innerHTML = "<span class='tag'>" + escapeHtml(item.name) + "</span><span class='tag'>" +
+          escapeHtml(item.skip || ("id · " + item.id)) + "</span><p class='hint'>" +
+          escapeHtml(item.path) + (item.text ? " · " + item.text.length : "") + "</p>";
+        box.appendChild(article);
+      });
+    }
+
+    async function readQueue(fileList) {
+      const files = Array.prototype.slice.call(fileList || []);
+      const used = {};
+      const next = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const path = (file.webkitRelativePath || file.name).replace(/\\/g, "/");
+        if (!isTextName(file.name)) {
+          next.push({ name: file.name, path: path, skip: zh ? "不是文本" : "Not text" });
+          continue;
+        }
+        const text = await file.text();
+        if (!text.trim()) {
+          next.push({ name: file.name, path: path, skip: zh ? "是空的" : "Empty" });
+          continue;
+        }
+        let id = idFromPath(file);
+        if (!id) id = "file";
+        const base = id;
+        let n = 2;
+        while (used[id]) {
+          id = base + "-" + n;
+          n += 1;
+        }
+        used[id] = true;
+        next.push({ id: id, source: file.name, text: text, name: file.name, path: path, skip: "" });
+      }
+      return next;
+    }
+
     async function loadRows() {
       const rows = await rest("GET", "/rest/v1/lesson_chunks?select=id,content,source&order=id.asc");
-      const list = Array.isArray(rows) ? rows : [];
-      paint(list);
-      return list;
+      allRows = Array.isArray(rows) ? rows : [];
+      paintRows();
+      return allRows;
     }
 
     async function writeOne(id, source, content) {
@@ -573,29 +655,43 @@
       return "embed";
     }
 
-    document.getElementById("md-file").addEventListener("change", async function (event) {
-      const files = Array.prototype.slice.call(event.target.files || []);
-      pending.length = 0;
-      const skipped = files.filter(function (file) { return !isMarkdown(file.name); });
-      const markdown = files.filter(function (file) { return isMarkdown(file.name); });
-      if (skipped.length) {
-        setStatus(zh ? "这一页只收 .md 文件。" : "This page only keeps .md files.", "bad");
-      }
-      if (!markdown.length) return;
-      if (markdown.length === 1) {
-        const text = await markdown[0].text();
-        document.getElementById("row-id").value = idFromName(markdown[0].name);
-        document.getElementById("row-source").value = markdown[0].name;
-        document.getElementById("md-body").value = text;
-        loadedId = "";
-        loadedContent = "";
+    document.getElementById("folder").addEventListener("change", async function (event) {
+      queue = await readQueue(event.target.files);
+      paintQueue();
+      const ready = queue.filter(function (item) { return !item.skip; });
+      const skipped = queue.length - ready.length;
+      if (!ready.length) {
+        setStatus(zh ? "这个文件夹里没有可写入的文本。" : "This folder has no text to write.", "bad");
         return;
       }
-      markdown.forEach(function (file) { pending.push(file); });
-      setStatus(zh ? "选了 " + markdown.length + " 个 Markdown。点写入。" : markdown.length + " Markdown files selected. Click Write.", "");
+      setStatus(zh
+        ? "可写入 " + ready.length + " 个文本。" + (skipped ? " 跳过 " + skipped + " 个。" : "")
+        : ready.length + " text files can be written." + (skipped ? " Skipped " + skipped + "." : ""), "");
     });
 
-    document.getElementById("md-body").addEventListener("input", function () { pending.length = 0; });
+    document.getElementById("filter").addEventListener("input", paintRows);
+
+    document.getElementById("write-folder").addEventListener("click", async function () {
+      if (!ready()) return;
+      const readyItems = queue.filter(function (item) { return !item.skip; });
+      if (!readyItems.length) {
+        setStatus(zh ? "先选一个含有文本的文件夹。" : "Choose a folder that contains text files.", "bad");
+        return;
+      }
+      try {
+        for (let i = 0; i < readyItems.length; i++) {
+          const item = readyItems[i];
+          setStatus((zh ? "正在写入 " : "Writing ") + (i + 1) + "/" + readyItems.length + " · " + item.name, "");
+          loadedId = "";
+          loadedContent = "";
+          await writeOne(item.id, item.source, item.text);
+        }
+        await loadRows();
+        setStatus(zh ? "已写入 " + readyItems.length + " 行。长度 1024。" : "Wrote " + readyItems.length + " rows. Length 1024.", "ok");
+      } catch (err) {
+        setStatus(err.message || String(err), "bad");
+      }
+    });
 
     document.getElementById("load").addEventListener("click", async function () {
       if (!ready()) return;
@@ -611,31 +707,15 @@
     document.getElementById("save").addEventListener("click", async function () {
       if (!ready()) return;
       try {
-        if (pending.length > 1) {
-          setStatus(zh ? "正在写入 Markdown…" : "Writing Markdown…", "");
-          for (let i = 0; i < pending.length; i++) {
-            const file = pending[i];
-            const text = await file.text();
-            const id = idFromName(file.name);
-            if (!id || !text.trim()) continue;
-            loadedId = "";
-            loadedContent = "";
-            await writeOne(id, file.name, text);
-          }
-          pending.length = 0;
-          await loadRows();
-          setStatus(zh ? "Markdown 已写入。长度 1024。" : "Markdown is stored. Length 1024.", "ok");
-          return;
-        }
         const id = document.getElementById("row-id").value.trim();
         const source = document.getElementById("row-source").value.trim();
         const content = document.getElementById("md-body").value;
         if (!id || !content.trim()) {
-          setStatus(zh ? "先填 id，并放上 Markdown。" : "Enter an id and some Markdown.", "bad");
+          setStatus(zh ? "先填 id，并放上正文。" : "Enter an id and some text.", "bad");
           return;
         }
         if (!source) {
-          setStatus(zh ? "先填来源，例如文件名。" : "Enter a source, such as the file name.", "bad");
+          setStatus(zh ? "先填文件名。" : "Enter the file name.", "bad");
           return;
         }
         setStatus(zh ? "正在写入…" : "Writing…", "");
@@ -671,6 +751,34 @@
         setStatus(err.message || String(err), "bad");
       }
     });
+
+    document.getElementById("ask").addEventListener("click", async function () {
+      if (!ready()) return;
+      const question = document.getElementById("probe").value.trim();
+      if (!question) {
+        setStatus(zh ? "先写一句话。" : "Enter one sentence.", "bad");
+        return;
+      }
+      setStatus(zh ? "正在把这句话变成数字…" : "Turning that sentence into numbers…", "");
+      try {
+        const vector = (await embed([question]))[0];
+        if (!vector || vector.length !== 1024) throw new Error(zh ? "返回的长度不是 1024" : "The vector length is not 1024");
+        const rows = await rest("POST", "/rest/v1/rpc/match_lesson_chunks", { query_embedding: vector, match_count: 3 });
+        const list = Array.isArray(rows) ? rows : [];
+        document.getElementById("ranks").innerHTML = list.map(function (row, i) {
+          return "<article class='" + (i === 0 ? "policy" : "") + "'><span class='tag'>id · " + escapeHtml(row.id) + " · " + Number(row.similarity).toFixed(2) + "</span><span class='tag'>" + escapeHtml(row.source || "") + "</span><p>" + escapeHtml(row.content) + "</p></article>";
+        }).join("") || "<p class='hint'>—</p>";
+        setStatus(list[0]
+          ? (zh ? "最近的是 " : "Nearest is ") + list[0].id
+          : (zh ? "库里还没有行。" : "No rows yet."),
+          list[0] ? "ok" : "bad");
+      } catch (err) {
+        setStatus(err.message || String(err), "bad");
+      }
+    });
+
+    paintQueue();
+    paintRows();
   }
 
   function pdfText(buffer) {
