@@ -513,6 +513,36 @@ body[data-demo="split"] #queue article { cursor: pointer; }
   outline: 2px solid var(--eucalyptus);
 }
 
+button .en-term {
+  display: block;
+  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 550;
+  color: var(--muted);
+}
+
+button.on .en-term { color: rgba(255, 255, 255, 0.72); }
+
+body[data-demo="methods"] .gloss {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+body[data-demo="methods"] .gloss div {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  background: var(--white);
+  border: 1px solid var(--mist);
+  border-radius: 8px;
+  padding: 3px 8px;
+}
+
+body[data-demo="methods"] .gloss dt { font-weight: 650; }
+body[data-demo="methods"] .gloss dd { margin: 0; color: var(--muted); font-size: 12px; }
+
 body[data-demo="methods"] .reads {
   font-weight: 650;
   margin: 0 0 8px;

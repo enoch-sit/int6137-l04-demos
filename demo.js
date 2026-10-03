@@ -118,6 +118,11 @@
       .replace(/>/g, "&gt;");
   }
 
+  function termButton(attr, item) {
+    const en = item[2] ? "<span class='en-term'>" + escapeHtml(item[2]) + "</span>" : "";
+    return "<button type='button' data-" + attr + "='" + item[0] + "'>" + item[1] + en + "</button>";
+  }
+
   function toMarkdown(root) {
     const lines = [];
     root.querySelectorAll("h1,h2,h3,p,li").forEach(function (el) {
@@ -1150,10 +1155,10 @@
       : "Q: How do I apply for leave?\nA: Apply ten working days before you travel. Do not leave before the reply.\n\nQ: What am I allergic to?\nA: Register a peanut allergy on the joining form. The canteen does not serve peanut butter.\n\nQ: When is the last shuttle?\nA: On class days the last bus is 21:00. On weekends it is 18:00.\n\nQ: Where is the summer trip?\nA: Summer trip, book now. This line is not a rule.";
 
     const methodList = zh
-      ? [["whole", "整篇"], ["hard", "硬切"], ["size", "按字数"], ["symbol", "按符号"], ["sentence", "按句子"], ["paragraph", "按空行"], ["heading", "按标题"], ["recursive", "递归"], ["qa", "问答对"], ["window", "句子窗口"]]
+      ? [["whole", "整篇", "whole"], ["hard", "硬切", "hard cut"], ["size", "按字数", "by length"], ["symbol", "按符号", "by symbol"], ["sentence", "按句子", "by sentence"], ["paragraph", "按空行", "by paragraph"], ["heading", "按标题", "by heading"], ["recursive", "递归", "recursive"], ["qa", "问答对", "Q&A"], ["window", "句子窗口", "sentence window"]]
       : [["whole", "Whole"], ["hard", "Hard cut"], ["size", "By length"], ["symbol", "By symbol"], ["sentence", "Sentences"], ["paragraph", "Blank lines"], ["heading", "Headings"], ["recursive", "Recursive"], ["qa", "Q&A"], ["window", "Window"]];
     const overlapList = zh
-      ? [["none", "不重叠"], ["sentence", "上一句"], ["chars", "固定字数"], ["ratio", "百分比"]]
+      ? [["none", "不重叠", "no overlap"], ["sentence", "上一句", "last sentence"], ["chars", "固定字数", "fixed characters"], ["ratio", "百分比", "percent"]]
       : [["none", "None"], ["sentence", "Last sentence"], ["chars", "Characters"], ["ratio", "Percent"]];
     const symbolPresets = zh
       ? [["。", "。"], ["！", "！"], ["？", "？"], ["，", "，"], ["空行", "\\n\\n"], ["换行", "\\n"]]
@@ -1169,19 +1174,19 @@
       "<div class='row'><button type='button' id='sample'>" + (zh ? "填入课文" : "Fill the handbook") + "</button><button type='button' id='sample-qa'>" + (zh ? "填入问答" : "Fill questions") + "</button></div>" +
       "<h2>" + (zh ? "怎么切" : "How to cut") + "</h2>" +
       "<div class='row methods' id='methods'>" + methodList.map(function (item) {
-        return "<button type='button' data-mode='" + item[0] + "'>" + item[1] + "</button>";
+        return termButton("mode", item);
       }).join("") + "</div>" +
       "<p id='why' class='hint'></p>" +
-      "<div class='field only' id='size-row'><label for='max'>" + (zh ? "一块最多多少字" : "Most characters in one chunk") + "</label><input id='max' type='number' min='8' value='80' /></div>" +
-      "<div class='field only' id='overlap-row'><label>" + (zh ? "重叠" : "Overlap") + "</label><div class='row methods' id='overlap-kinds'>" + overlapList.map(function (item) {
-        return "<button type='button' data-overlap='" + item[0] + "'>" + item[1] + "</button>";
+      "<div class='field only' id='size-row'><label for='max'>" + (zh ? "一块最多多少字 chunk size" : "Most characters in one chunk") + "</label><input id='max' type='number' min='8' value='80' /></div>" +
+      "<div class='field only' id='overlap-row'><label>" + (zh ? "重叠 overlap" : "Overlap") + "</label><div class='row methods' id='overlap-kinds'>" + overlapList.map(function (item) {
+        return termButton("overlap", item);
       }).join("") + "</div></div>" +
       "<div class='field only' id='amount-row'><label for='amount'>" + (zh ? "重叠多少字" : "Overlap characters") + "</label><input id='amount' type='number' min='1' value='20' /></div>" +
       "<div class='field only' id='symbol-row'><label for='symbol'>" + (zh ? "遇到这个符号就切。换行用下面的按钮。" : "Cut at this symbol. Newlines are the buttons below.") + "</label><input id='symbol' type='text' value='" + (zh ? "。" : ". ") + "' autocomplete='off' /><div class='row methods' id='symbol-presets'>" + symbolPresets.map(function (item) {
         return "<button type='button' data-symbol='" + escapeHtml(item[1]) + "'>" + escapeHtml(item[0]) + "</button>";
       }).join("") + "</div></div>" +
-      "<div class='field only' id='window-row'><label for='window-n'>" + (zh ? "每块几句" : "Sentences in one chunk") + "</label><input id='window-n' type='number' min='1' max='8' value='2' /></div>" +
-      "<div class='field'><label for='gate'>" + (zh ? "短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
+      "<div class='field only' id='window-row'><label for='window-n'>" + (zh ? "每块几句 sentence window" : "Sentences in one chunk") + "</label><input id='window-n' type='number' min='1' max='8' value='2' /></div>" +
+      "<div class='field'><label for='gate'>" + (zh ? "门槛 gate。短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
       "<label class='check only' id='title-row'><input id='keep-title' type='checkbox' />" + (zh ? "标题写进被切开的每一块" : "Copy the heading into every piece of that section") + "</label>" +
       "<div class='field'><label for='stem'>" + (zh ? "文件夹名" : "Folder name") + "</label><input id='stem' type='text' value='chunks' autocomplete='off' /></div>" +
       "<div class='row'><button type='button' class='primary' id='open-preview' disabled>" + (zh ? "预览" : "Preview") + "</button></div>" +
@@ -1617,10 +1622,10 @@
       ? "问：怎么请假？\n答：教职员请于出发前十个工作日在门户提交年假申请。未批复前不得离岗。\n\n问：我对什么过敏？\n答：花生过敏须在入职表上登记。食堂不提供花生酱。\n\n问：校巴末班是几点？\n答：上课日末班二十一时。周末末班十八时。\n\n问：暑假去哪？\n答：暑假旅游，立即预订。此段不是规章。"
       : "Q: How do I apply for leave?\nA: Apply ten working days before you travel. Do not leave before the reply.\n\nQ: What am I allergic to?\nA: Register a peanut allergy on the joining form. The canteen does not serve peanut butter.\n\nQ: When is the last shuttle?\nA: On class days the last bus is 21:00. On weekends it is 18:00.\n\nQ: Where is the summer trip?\nA: Summer trip, book now. This line is not a rule.";
     const methodList = zh
-      ? [["whole", "整篇"], ["hard", "硬切"], ["size", "按字数"], ["symbol", "按符号"], ["sentence", "按句子"], ["paragraph", "按空行"], ["heading", "按标题"], ["recursive", "递归"], ["qa", "问答对"], ["window", "句子窗口"]]
+      ? [["whole", "整篇", "whole"], ["hard", "硬切", "hard cut"], ["size", "按字数", "by length"], ["symbol", "按符号", "by symbol"], ["sentence", "按句子", "by sentence"], ["paragraph", "按空行", "by paragraph"], ["heading", "按标题", "by heading"], ["recursive", "递归", "recursive"], ["qa", "问答对", "Q&A"], ["window", "句子窗口", "sentence window"]]
       : [["whole", "Whole"], ["hard", "Hard cut"], ["size", "By length"], ["symbol", "By symbol"], ["sentence", "Sentences"], ["paragraph", "Blank lines"], ["heading", "Headings"], ["recursive", "Recursive"], ["qa", "Q&A"], ["window", "Window"]];
     const overlapList = zh
-      ? [["none", "不重叠"], ["sentence", "上一句"], ["chars", "固定字数"], ["ratio", "百分比"]]
+      ? [["none", "不重叠", "no overlap"], ["sentence", "上一句", "last sentence"], ["chars", "固定字数", "fixed characters"], ["ratio", "百分比", "percent"]]
       : [["none", "None"], ["sentence", "Last sentence"], ["chars", "Characters"], ["ratio", "Percent"]];
     const symbolPresets = zh
       ? [["。", "。"], ["！", "！"], ["？", "？"], ["，", "，"], ["空行", "\\n\\n"], ["换行", "\\n"]]
@@ -1798,33 +1803,52 @@
       "<p class='hint'>" + (zh
         ? "右边的块和切块那一页是同一段程序。这里默认 40 个字，短文才切得开。切块页的默认是 80。"
         : "The pieces on the right come from the same program as the chunking page. This page starts at 40 characters so the short passage splits. The chunking page starts at 80.") + "</p>" +
+      (zh ? "<dl class='gloss'>" + [
+        ["块", "chunk"],
+        ["字数", "chunk size"],
+        ["重叠", "overlap"],
+        ["琥珀色", "amber"],
+        ["门槛", "gate"],
+        ["硬切", "hard cut"],
+        ["按字数", "by length"],
+        ["按符号", "by symbol"],
+        ["按句子", "by sentence"],
+        ["按空行", "by paragraph"],
+        ["按标题", "by heading"],
+        ["递归", "recursive"],
+        ["问答对", "Q&A"],
+        ["句子窗口", "sentence window"],
+        ["上一句", "last sentence"]
+      ].map(function (pair) {
+        return "<div><dt>" + pair[0] + "</dt><dd>" + pair[1] + "</dd></div>";
+      }).join("") + "</dl>" : "") +
       "<div class='row methods' id='methods'>" + methodList.map(function (item) {
-        return "<button type='button' data-mode='" + item[0] + "'>" + item[1] + "</button>";
+        return termButton("mode", item);
       }).join("") + "</div>" +
       "<p id='reads' class='reads'></p>" +
       "<div class='columns'>" +
       "<section class='panel'>" +
       "<h2>" + (zh ? "这一刀怎么走" : "How this cut moves") + "</h2>" +
       "<p id='always' class='hint'>" + (zh
-        ? "门槛先于任何刀。全文长度小于或等于门槛，而且门槛大于 0，结果是一整块，没有重叠。0 表示继续用你选的这一刀。粘贴的文本会先把回车换成换行，再去掉首尾空白。字数按字符串长度：一个汉字、一个英文字母、一个标点，都算 1。"
+        ? "门槛（gate）先于任何刀。全文长度小于或等于这个字数，而且门槛大于 0，结果是一整块，没有重叠（overlap）。0 表示继续用你选的这一刀。粘贴的文本会先把回车换成换行，再去掉首尾空白。字数（chunk size）按字符串长度：一个汉字、一个英文字母、一个标点，都算 1。"
         : "The gate runs before every cut. If the text is no longer than the gate and the gate is above 0, the result is one chunk with no overlap. 0 means the cut you picked still runs. Pasted text turns carriage returns into newlines, then trims. Length is a string length: one Han character, one letter, and one punctuation mark each count as 1.") + "</p>" +
       "<ol id='steps' class='steps'></ol>" +
-      "<h2 id='overlap-head'>" + (zh ? "重叠怎么写进文件" : "How overlap is written into the file") + "</h2>" +
+      "<h2 id='overlap-head'>" + (zh ? "重叠（overlap）怎么写进文件" : "How overlap is written into the file") + "</h2>" +
       "<p id='overlap-lead' class='hint'>" + (zh
-        ? "琥珀色只是这一页上的颜色。txt 里有这些字，没有颜色标记。第一块不抄。整篇和问答对不抄。句子窗口用自己的滑动，不读这排按钮。"
+        ? "琥珀色（amber）只是这一页上的颜色。txt 里有这些字，没有颜色标记。第一块不抄。整篇和问答对不抄。句子窗口（sentence window）用自己的滑动，不读这排按钮。"
         : "Amber is only the colour on this page. The txt contains these characters, with no colour mark. The first chunk copies nothing. Whole and Q&A copy nothing. A sentence window uses its own slide and does not read these buttons.") + "</p>" +
       "<ol id='overlap-steps' class='steps'></ol>" +
-      "<div class='field only' id='size-row'><label for='max'>" + (zh ? "一块最多多少字" : "Most characters in one chunk") + "</label><input id='max' type='number' min='8' value='40' /></div>" +
-      "<div class='field only' id='overlap-row'><label>" + (zh ? "重叠" : "Overlap") + "</label><div class='row methods' id='overlap-kinds'>" + overlapList.map(function (item) {
-        return "<button type='button' data-overlap='" + item[0] + "'>" + item[1] + "</button>";
+      "<div class='field only' id='size-row'><label for='max'>" + (zh ? "一块最多多少字 chunk size" : "Most characters in one chunk") + "</label><input id='max' type='number' min='8' value='40' /></div>" +
+      "<div class='field only' id='overlap-row'><label>" + (zh ? "重叠 overlap" : "Overlap") + "</label><div class='row methods' id='overlap-kinds'>" + overlapList.map(function (item) {
+        return termButton("overlap", item);
       }).join("") + "</div></div>" +
       "<div class='field only' id='amount-row'><label for='amount'>" + (zh ? "重叠多少字" : "Overlap characters") + "</label><input id='amount' type='number' min='1' value='12' /></div>" +
       "<div class='field only' id='symbol-row'><label for='symbol'>" + (zh ? "遇到这个符号就切" : "Cut at this symbol") + "</label><input id='symbol' type='text' value='" + (zh ? "。" : ". ") + "' autocomplete='off' /><div class='row methods' id='symbol-presets'>" + symbolPresets.map(function (item) {
         return "<button type='button' data-symbol='" + escapeHtml(item[1]) + "'>" + escapeHtml(item[0]) + "</button>";
       }).join("") + "</div></div>" +
-      "<div class='field only' id='window-row'><label for='window-n'>" + (zh ? "每块几句" : "Sentences in one chunk") + "</label><input id='window-n' type='number' min='1' max='8' value='2' /></div>" +
+      "<div class='field only' id='window-row'><label for='window-n'>" + (zh ? "每块几句 sentence window" : "Sentences in one chunk") + "</label><input id='window-n' type='number' min='1' max='8' value='2' /></div>" +
       "<label class='check only' id='title-row'><input id='keep-title' type='checkbox' checked />" + (zh ? "标题写进被切开的每一块" : "Copy the heading into every piece of that section") + "</label>" +
-      "<div class='field'><label for='gate'>" + (zh ? "短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
+      "<div class='field'><label for='gate'>" + (zh ? "门槛 gate。短于多少字就整篇一块。0 表示总是切。" : "Shorter than this stays one chunk. 0 always cuts.") + "</label><input id='gate' type='number' min='0' value='0' /></div>" +
       "<h2>" + (zh ? "标本" : "Passage") + "</h2>" +
       "<div class='row'><button type='button' id='sample'>" + (zh ? "填入课文" : "Fill the handbook") + "</button><button type='button' id='sample-qa'>" + (zh ? "填入问答" : "Fill questions") + "</button></div>" +
       "<textarea id='body' class='tall'></textarea>" +
@@ -1903,11 +1927,11 @@
 
     function readsLine(mode) {
       if (zh) {
-        if (mode === "whole" || mode === "qa") return "这一刀读门槛。字数和重叠按钮都不读。";
-        if (mode === "window") return "这一刀读「每块几句」和门槛。字数和重叠按钮都不读。";
-        if (mode === "symbol") return "这一刀读符号、重叠和门槛。字数不读。";
-        if (mode === "heading") return "这一刀读字数、重叠、门槛，以及标题要不要写进每一块。";
-        return "这一刀读字数、重叠和门槛。";
+        if (mode === "whole" || mode === "qa") return "这一刀读门槛 gate。字数 chunk size 和重叠 overlap 的按钮都不读。";
+        if (mode === "window") return "这一刀读「每块几句」sentence window 和门槛 gate。字数和重叠按钮都不读。";
+        if (mode === "symbol") return "这一刀读符号 symbol、重叠 overlap 和门槛 gate。字数不读。";
+        if (mode === "heading") return "这一刀读字数 chunk size、重叠 overlap、门槛 gate，以及标题要不要写进每一块。";
+        return "这一刀读字数 chunk size、重叠 overlap 和门槛 gate。";
       }
       if (mode === "whole" || mode === "qa") return "This cut reads the gate. It does not read the character limit or the overlap buttons.";
       if (mode === "window") return "This cut reads the sentence count and the gate. It does not read the character limit or the overlap buttons.";
@@ -1977,7 +2001,7 @@
       let line = "";
       if (zh) {
         line = "全文 " + text.length + " 字，切成 " + pieces.length + " 块。最长 " + longest + " 字。";
-        if (made.gated) line += " 不超过门槛 " + gateN() + "，所以没有按这一刀切开。";
+        if (made.gated) line += " 不超过门槛 gate " + gateN() + "，所以没有按这一刀切开。";
         else line += " 琥珀色一共 " + overlapChars + " 字，这些字在 txt 里。";
         if (currentMode === "qa" && !made.saw) line += " 这篇里没有「问：」或「Q:」。";
       } else {
