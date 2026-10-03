@@ -1799,29 +1799,54 @@
           ]
         };
 
+    const termRows = zh
+      ? [
+          ["块", "chunk", "「出发前申请。」可以单独成一块。一块是 zip 里的一个 txt，也是向量库里的一行。"],
+          ["字数", "chunk size", "上限填 20。「出发前申请。」是 6 个字，放得下。再加「未批复前不得离岗。」一共 15 个字，仍放得下。再加一句如果超过 20，就另起一块。"],
+          ["门槛", "gate", "全文只有「出发前申请。」，6 个字。门槛填 80。6 ≤ 80，整篇一块，下面的刀都不走。填 0 才继续切。"],
+          ["重叠", "overlap", "上一块以「未批复前不得离岗。」结尾。下一块的正文开头会再写上这一句。"],
+          ["琥珀色", "amber", "页面上「未批复前不得离岗。」涂成琥珀色，表示这句是抄来的。txt 里有这几个字，没有颜色。"],
+          ["硬切", "hard cut", "上限 2。「年假须写明」切成「年假」「须写」「明」。刀落在第 2 个字，不看句号。"],
+          ["按字数", "by length", "上限 8。「出发前申请。」是 6 个字，句号在窗口后半，就在句号收刀。下一句「未批复前不得离岗。」另起一块。"],
+          ["按符号", "by symbol", "符号填「。」。「出发前申请。」是一块，句号留在这块末尾。下一块从「未批复前不得离岗」开始。"],
+          ["按句子", "by sentence", "「出发前申请。」是一句，「未批复前不得离岗。」是下一句。上限 20 时，两句装进同一块。上限 8 时，第一句单独成块。"],
+          ["按空行", "by paragraph", "两段之间的空行是边界。两段都短，上限 40 时合成一块，中间仍留一个空行。"],
+          ["按标题", "by heading", "「# 年假」单独成行。后面的规定跟到下一个标题「# 过敏」之前。勾了「标题写进每一块」时，切开的每一小块开头都会再写「# 年假」。"],
+          ["递归", "recursive", "先在空行处切。一段仍超过字数，就改在换行处切，再改在「。」处切。这些边界都没有，才按字硬切。"],
+          ["问答对", "Q&A", "「问：怎么请假？」开头是新的一块。「答：出发前十个工作日提交。」跟在这个问题后面，直到下一个「问：」。"],
+          ["句子窗口", "sentence window", "三句是 A。B。C。每块 2 句。第一块是 A。B。第二块丢掉 A，留下 B，补上 C。相邻两块共享 B。"],
+          ["上一句", "last sentence", "重叠选「上一句」。抄的是上一块最后一句「未批复前不得离岗。」，不是末尾固定的几个字。"],
+          ["固定字数", "fixed characters", "填 4。只抄上一块末尾 4 个字，例如「得离岗。」。至少留 1 个字不抄。"],
+          ["百分比", "percent", "上一块 20 个字，填 25。抄末尾 5 个字。填到 90 以上仍按 90，不会把上一块整块抄过来。"]
+        ]
+      : [
+          ["Chunk", "", "“Apply before you travel.” can be one chunk by itself. One chunk is one txt in the zip, and one row in the vector store."],
+          ["Chunk size", "", "The limit is 20. “Apply now.” is 10 characters, so it fits. “Apply now. Wait.” is 16, so both sentences stay in that chunk. One more sentence past 20 starts a new chunk."],
+          ["Gate", "", "The whole text is “Apply now.”, 10 characters. The gate is 80. 10 ≤ 80, so it stays one chunk and the chosen cut does not run. 0 means the cut still runs."],
+          ["Overlap", "", "The previous chunk ends with “Do not leave yet.” The next chunk starts by writing that sentence again."],
+          ["Amber", "", "“Do not leave yet.” is painted amber on this page because it was copied. The txt contains those characters, with no colour."],
+          ["Hard cut", "", "The limit is 5. “Apply now.” becomes “Apply” and “ now.”. The cut falls on the 5th character and ignores the period."],
+          ["By length", "", "The limit is 12. “Apply now.” is 10 characters and the period sits in the latter part of the window, so the cut stops at the period. The next sentence starts a new chunk."],
+          ["By symbol", "", "The symbol is “. ”. “Apply now.” is one chunk, and the period stays at the end of it. The next chunk starts at “Do not”."],
+          ["By sentence", "", "“Apply now.” is one sentence. “Do not leave yet.” is the next. At a limit of 40 they pack into one chunk. At a limit of 12 the first sentence is its own chunk."],
+          ["By paragraph", "", "A blank line between two paragraphs is the boundary. When both are short and the limit is 40, they join into one chunk with one blank line still between them."],
+          ["By heading", "", "“# Leave” stands on its own line. The rules under it stay with that heading until “# Allergy”. With “copy the heading” on, each later piece starts with “# Leave” again."],
+          ["Recursive", "", "Cut at a blank line first. If a piece is still over the limit, try a newline, then a period. When none of those boundaries exist, hard-cut by characters."],
+          ["Q&A", "", "“Q: How do I apply?” starts a chunk. “A: Apply ten working days ahead.” stays with that question until the next “Q:”."],
+          ["Sentence window", "", "Three sentences are A. B. C. Each chunk holds 2. The first chunk is A. B. The next drops A, keeps B, and adds C. Neighbours share B."],
+          ["Last sentence", "", "With overlap set to last sentence, the copy is the previous chunk’s last sentence, “Do not leave yet.”, not a fixed number of characters."],
+          ["Fixed characters", "", "Set 4. Only the last 4 characters of the previous chunk are copied, for example “yet.”. At least 1 character stays behind."],
+          ["Percent", "", "The previous chunk is 20 characters and the box says 25. The last 5 characters are copied. Above 90 is treated as 90, so the whole previous chunk is never copied."]
+        ];
+
     app.innerHTML =
       "<p class='hint'>" + (zh
         ? "右边的块和切块那一页是同一段程序。这里默认 40 个字，短文才切得开。切块页的默认是 80。"
         : "The pieces on the right come from the same program as the chunking page. This page starts at 40 characters so the short passage splits. The chunking page starts at 80.") + "</p>" +
-      (zh ? "<dl class='gloss'>" + [
-        ["块", "chunk"],
-        ["字数", "chunk size"],
-        ["重叠", "overlap"],
-        ["琥珀色", "amber"],
-        ["门槛", "gate"],
-        ["硬切", "hard cut"],
-        ["按字数", "by length"],
-        ["按符号", "by symbol"],
-        ["按句子", "by sentence"],
-        ["按空行", "by paragraph"],
-        ["按标题", "by heading"],
-        ["递归", "recursive"],
-        ["问答对", "Q&A"],
-        ["句子窗口", "sentence window"],
-        ["上一句", "last sentence"]
-      ].map(function (pair) {
-        return "<div><dt>" + pair[0] + "</dt><dd>" + pair[1] + "</dd></div>";
-      }).join("") + "</dl>" : "") +
+      "<table class='terms'><thead><tr><th>" + (zh ? "术语" : "Term") + "</th><th>" + (zh ? "例子" : "Example") + "</th></tr></thead><tbody>" +
+      termRows.map(function (row) {
+        return "<tr><td><strong>" + escapeHtml(row[0]) + "</strong>" + (row[1] ? "<span class='en-term'>" + escapeHtml(row[1]) + "</span>" : "") + "</td><td>" + escapeHtml(row[2]) + "</td></tr>";
+      }).join("") + "</tbody></table>" +
       "<div class='row methods' id='methods'>" + methodList.map(function (item) {
         return termButton("mode", item);
       }).join("") + "</div>" +
