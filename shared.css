@@ -559,6 +559,27 @@ body[data-demo="methods"] table.terms .en-term {
 
 body[data-demo="methods"] table.terms tr:last-child td { border-bottom: 0; }
 
+body[data-demo="methods"] .ex-piece {
+  display: grid;
+  grid-template-columns: 1.4em 1fr;
+  gap: 6px;
+  align-items: start;
+  margin: 0 0 4px;
+}
+
+body[data-demo="methods"] .ex-piece span {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--eucalyptus);
+  padding-top: 4px;
+}
+
+body[data-demo="methods"] .ex-piece pre {
+  margin: 0;
+  min-height: 0;
+  padding: 4px 6px;
+}
+
 body[data-demo="methods"] .reads {
   font-weight: 650;
   margin: 0 0 8px;
